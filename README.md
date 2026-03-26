@@ -4,6 +4,8 @@ An interactive, browser-based tool for learning how AI compilers work — built 
 
 > Open `Code/ai_compiler_explorer.html` directly in any browser. No installation, no server.
 
+![AI Compiler Explorer](Code/screenshot.png)
+
 ---
 
 ## What is This?
@@ -113,19 +115,8 @@ The concepts here are identical. Production compilers add hardware codegen, loop
 
 ---
 
-## Adding a Screenshot
+## Screenshot
 
-To add a screenshot of the explorer to this README:
-
-```bash
-# Take a screenshot of the app running in your browser, save it, then:
-git add Code/screenshot.png
-git commit -m "Add screenshot"
-git push
-```
-
-Then add this line to the README where you want it to appear:
-
-```markdown
 ![AI Compiler Explorer](Code/screenshot.png)
-```
+
+*Graph 2 — Linear Layer: `y = ReLU(x @ W + b)`, with the Learn tab open showing inline concept explanations.*
