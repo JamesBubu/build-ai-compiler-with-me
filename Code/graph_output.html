@@ -1,0 +1,87 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>AI Compiler Graph Visualizer</title>
+        <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+        <style type="text/css">
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+                background-color: #f4f4f9;
+            }
+            #mynetwork {
+                width: 100vw;
+                height: 100vh;
+                border: 1px solid lightgray;
+                background-color: #ffffff;
+            }
+            #title {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                z-index: 100;
+                background: rgba(255, 255, 255, 0.8);
+                padding: 10px;
+                border-radius: 5px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            }
+        </style>
+    </head>
+    <body>
+        <div id="title">
+            <h3>Computational Graph (Netron-like)</h3>
+            <p>🔴 Variable, 🟢 Constant, 🟠 Operator</p>
+        </div>
+        <div id="mynetwork"></div>
+
+        <script type="text/javascript">
+            // 從 Python 導入的資料
+            var nodes = new vis.DataSet([{"id": 4303480000, "label": "output\n(Add)\nval: 5.0", "color": "#FFA807", "shape": "box"}, {"id": 4303480960, "label": "relu\n(ReLU)\nval: None", "color": "#FFA807", "shape": "box"}, {"id": 4303482992, "label": "x_plus_y\n(Add)\nval: None", "color": "#FFA807", "shape": "box"}, {"id": 4303486160, "label": "x\n(Variable)\nval: None", "color": "#FB7E81", "shape": "ellipse"}, {"id": 4303485920, "label": "y\n(Variable)\nval: None", "color": "#FB7E81", "shape": "ellipse"}, {"id": 4303485536, "label": "bias\n(Constant)\nval: 5.0", "color": "#C2FABC", "shape": "ellipse"}]);
+            var edges = new vis.DataSet([{"from": 4303480960, "to": 4303480000, "arrows": "to"}, {"from": 4303482992, "to": 4303480960, "arrows": "to"}, {"from": 4303486160, "to": 4303482992, "arrows": "to"}, {"from": 4303485920, "to": 4303482992, "arrows": "to"}, {"from": 4303485536, "to": 4303480000, "arrows": "to"}]);
+
+            // 取得容器
+            var container = document.getElementById('mynetwork');
+
+            // 將資料放入 vis-network
+            var data = {
+                nodes: nodes,
+                edges: edges
+            };
+            
+            // 設定圖形選項
+            var options = {
+                layout: {
+                    hierarchical: {
+                        direction: 'UD', // Up to Down
+                        sortMethod: 'directed',
+                        nodeSpacing: 150,
+                        levelSeparation: 150
+                    }
+                },
+                physics: false, // 關閉物理引擎讓排版更固定 (類似 Netron)
+                nodes: {
+                    font: {
+                        size: 14,
+                        face: 'Arial'
+                    },
+                    borderWidth: 2
+                },
+                edges: {
+                    width: 2,
+                    color: { inherit: 'from' },
+                    smooth: {
+                        type: 'cubicBezier',
+                        forceDirection: 'vertical',
+                        roundness: 0.4
+                    }
+                }
+            };
+
+            // 初始化網絡圖
+            var network = new vis.Network(container, data, options);
+        </script>
+    </body>
+    </html>
+    
