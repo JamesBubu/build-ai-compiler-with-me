@@ -81,8 +81,21 @@ header {
   display: flex; flex-direction: column;
   overflow-y: auto; flex-shrink: 0;
 }
-.sidebar-left  { width: 232px; border-right: 1px solid var(--border); }
-.sidebar-right { width: 296px; border-left:  1px solid var(--border); }
+.sidebar-left  { width: 232px; border-right: none; }
+.sidebar-right { width: 296px; border-left:  none; }
+
+/* ── RESIZE HANDLES ── */
+.resizer {
+  width: 4px; flex-shrink: 0; cursor: col-resize;
+  background: var(--border);
+  transition: background 0.15s;
+  position: relative; z-index: 5;
+}
+.resizer:hover, .resizer.dragging { background: var(--accent); }
+.resizer::after {
+  content: ''; position: absolute; top: 0; bottom: 0;
+  left: -3px; right: -3px; /* wider hit area */
+}
 
 /* ── SECTIONS ── */
 .sec { padding: 12px 12px 14px; border-bottom: 1px solid var(--border); }
@@ -420,6 +433,8 @@ select option { background: #2d2d2e; }
   </div>
 </div>
 
+<div class="resizer" id="resizer-left"></div>
+
 <!-- ══ CANVAS ══ -->
 <div class="graph-wrap">
   <div id="graph-canvas"></div>
@@ -434,6 +449,8 @@ select option { background: #2d2d2e; }
     </div>
   </div>
 </div>
+
+<div class="resizer" id="resizer-right"></div>
 
 <!-- ══ RIGHT ══ -->
 <div class="sidebar sidebar-right">
@@ -1375,7 +1392,55 @@ function toast(msg){
   document.body.appendChild(d); setTimeout(()=>d.remove(),2600);
 }
 
-window.addEventListener('load', init);
+// ═══════════════════════════════════════════════════════
+//  RESIZABLE PANELS
+// ═══════════════════════════════════════════════════════
+function initResizers() {
+  const workspace = document.querySelector('.workspace');
+  const sideLeft  = document.querySelector('.sidebar-left');
+  const sideRight = document.querySelector('.sidebar-right');
+  const rLeft  = document.getElementById('resizer-left');
+  const rRight = document.getElementById('resizer-right');
+  const MIN = 160, MAX = 520;
+
+  function startDrag(e, side) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = side === 'left' ? sideLeft.offsetWidth : sideRight.offsetWidth;
+    const handle = side === 'left' ? rLeft : rRight;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(e) {
+      const dx = e.clientX - startX;
+      const newW = Math.min(MAX, Math.max(MIN,
+        side === 'left' ? startW + dx : startW - dx
+      ));
+      if (side === 'left') sideLeft.style.width  = newW + 'px';
+      else                 sideRight.style.width = newW + 'px';
+      // Notify vis.js the canvas size changed
+      if (net) net.redraw();
+    }
+
+    function onUp() {
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      if (net) { net.redraw(); net.fit(); }
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  rLeft.addEventListener('mousedown',  e => startDrag(e, 'left'));
+  rRight.addEventListener('mousedown', e => startDrag(e, 'right'));
+}
+
+window.addEventListener('load', () => { init(); initResizers(); });
 </script>
 </body>
 </html>
