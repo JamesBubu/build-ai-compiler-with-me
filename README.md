@@ -2,7 +2,9 @@
 
 An interactive, browser-based tool for learning how AI compilers work — built from first principles, no dependencies.
 
-> Open `Code/ai_compiler_explorer.html` directly in any browser. No installation, no server.
+> **[▶ Open Live Demo](https://jamesbubu.github.io/build-ai-compiler-with-me/)** — hosted on GitHub Pages, no installation needed.
+>
+> Or clone and open `Code/ai_compiler_explorer.html` locally in any browser.
 
 ![AI Compiler Explorer — Passes panel showing Graph 2 (Linear Layer)](Code/explorer-passes-linear-layer.png)
 
