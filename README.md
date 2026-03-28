@@ -4,13 +4,15 @@ An interactive, browser-based tool for learning how AI compilers work — built 
 
 > Open `Code/ai_compiler_explorer.html` directly in any browser. No installation, no server.
 
-![AI Compiler Explorer](Code/screenshot.png)
+![AI Compiler Explorer — Passes panel showing Graph 2 (Linear Layer)](Code/explorer-passes-linear-layer.png)
+
+*Graph 2 — Linear Layer `y = ReLU(x @ W + b)`, Passes tab open. Compiler passes are organized by category: Analysis, Transformation, Hardware, Backend.*
 
 ---
 
 ## What is This?
 
-Modern AI frameworks like PyTorch, TensorFlow, and JAX all sit on top of a compiler stack. Understanding that stack — computation graphs, IR passes, shape inference — is increasingly essential for ML engineers.
+Modern AI frameworks like PyTorch, TensorFlow, and JAX all sit on top of a compiler stack. Understanding that stack — computation graphs, IR passes, shape inference, quantization — is increasingly essential for ML engineers.
 
 This project builds a **toy IR (Intermediate Representation)** in pure JavaScript/Python to make those concepts tangible and interactive. It follows the [Feynman Learning Method](https://fs.blog/feynman-learning-technique/): the best way to understand something is to build it yourself.
 
@@ -18,74 +20,85 @@ This project builds a **toy IR (Intermediate Representation)** in pure JavaScrip
 
 ## Interactive Explorer
 
-`Code/ai_compiler_explorer.html` is a single-file web app — open it in Chrome or Safari.
+`Code/ai_compiler_explorer.html` — single file, open directly in Chrome or Safari.
 
-### Features
+### Graph Editor
 
-**Computation Graph Editor**
 - Add nodes: `Variable`, `Constant`, `Add`, `Mul`, `ReLU`, `MatMul`
 - Connect nodes with directed edges
-- Click any node to inspect type, shape, and value
-- Delete nodes or edges interactively
+- Drag the panel dividers to resize the left/right sidebars
+- Click any node to inspect its type, shape, and value
+- Delete nodes or edges at any time
 
-**3 Built-in Graphs**
+### 3 Built-in Graphs
 
-| Graph | Expression | Concept |
-|-------|-----------|---------|
-| 1 | `z = ReLU(x + y)` | Basic element-wise ops |
-| 2 | `y = ReLU(x @ W + b)` | Dense / linear layer |
-| 3 | `z = ReLU(a+b) + ReLU(c+d)` | Parallel branches |
+| # | Expression | What it demonstrates |
+|---|-----------|----------------------|
+| 1 | `z = ReLU(x + y)` | Basic element-wise ops, lazy evaluation |
+| 2 | `y = ReLU(x @ W + b)` | Dense / linear layer with weight constants |
+| 3 | `z = ReLU(a+b) + ReLU(a+b)` | Duplicate subexpression — CSE demo |
 
-**Run Graph**
-- Enter runtime values for `Variable` nodes
-- Executes the graph in topological order
-- Each node's computed value is displayed inline on the graph
+### Run Graph
 
-**Compiler Passes**
+Enter runtime values for `Variable` nodes and press **Run Graph**. The graph executes in topological order and each node's computed value is overlaid on the canvas.
 
-| Pass | Type | What it does |
-|------|------|-------------|
-| Shape Inference | Analysis | Derives tensor shapes at compile time without executing |
-| Constant Folding | Transformation | Pre-computes all-constant subgraphs, replaces with `Constant` nodes |
-| Dead Code Elimination | Transformation | Removes nodes unreachable from any output |
+### Compiler Passes
+
+Passes are grouped by pipeline stage:
+
+**Analysis**
+
+| Pass | What it does |
+|------|-------------|
+| Shape Inference | Derives tensor shapes at compile time without executing any computation. Catches dimension mismatches early. |
+
+**Transformation**
+
+| Pass | What it does |
+|------|-------------|
+| Constant Folding | Pre-computes subgraphs whose inputs are all constants. Replaces them with a single `Constant` node. |
+| Algebraic Simplification | Applies math identities: `x+0→x`, `x×1→x`, `x×0→0`. Cleans up residue left by other passes. |
+| CSE | Finds nodes with identical op and inputs; merges duplicates. Load Graph 3 to see it in action. |
+| Dead Code Elimination | Traces backward from outputs via BFS. Removes nodes unreachable from any output. |
+
+**Hardware**
+
+| Pass | What it does |
+|------|-------------|
+| W8A16 Quantization | Quantizes `Constant` weight tensors to INT8 with a per-tensor scale. Shows quantization error. Activations remain FP16. |
+
+**Backend**
+
+| Pass | What it does |
+|------|-------------|
+| Code Generation | Emits syntax-highlighted C-like pseudocode in topological order. W8A16-aware: shows `int8_t` storage + `dequantize()` calls. |
+
+### Learn Tab
+
+8 collapsible sections covering every concept with explanations and code examples:
+Computation Graph · Shape Inference · Constant Folding · Algebraic Simplification · CSE · DCE · W8A16 Quantization · Code Generation · Industry Frameworks
 
 ---
 
 ## Python Implementation
 
-The `Code/` directory also contains a Python toy compiler built without NumPy or any external libraries — pure Python only.
+Pure Python toy compiler — no NumPy, no external dependencies.
 
 ```
 Code/
 ├── graph_types/
-│   ├── nodes.py          # Base Node, Variable, Constant
-│   ├── ops.py            # Add, ReLU operators
+│   ├── nodes.py                      # Base Node, Variable, Constant
+│   ├── ops.py                        # Add, ReLU operators
 │   └── __init__.py
-├── 01_basic_node_and_evaluator.py   # Build a graph and evaluate it
-├── 02_shape_inference_pass.py       # Shape inference compiler pass
-└── visualizer.py                    # Generates interactive HTML graph
+├── 01_basic_node_and_evaluator.py    # Build a graph and evaluate it
+├── 02_shape_inference_pass.py        # Shape inference compiler pass
+└── visualizer.py                     # Generates interactive HTML graph
 ```
-
-Run the examples:
 
 ```bash
 python3 Code/01_basic_node_and_evaluator.py
 python3 Code/02_shape_inference_pass.py
 ```
-
----
-
-## Core Concepts
-
-**Lazy Evaluation** — The graph is constructed as a data structure first. No computation happens at definition time. Values are only resolved when you explicitly call `evaluate()`.
-
-**Compiler Pass** — A function that traverses the graph and either analyzes it (read-only) or transforms it (mutates nodes/edges). Real compilers like TVM and MLIR compose dozens of passes.
-
-**Shape Inference** — Before any tensor is allocated, the compiler walks the graph and derives the output shape of every node from its input shapes. This is required for memory planning.
-
-**Constant Folding** — If every input to an operation is a compile-time constant, the operation can be executed once at compile time. The result replaces the subgraph as a new `Constant` node — eliminating runtime work.
-
-**Dead Code Elimination** — Starting from output nodes, trace backward via BFS. Any node not reachable from an output contributes nothing to the result and can be removed.
 
 ---
 
@@ -95,28 +108,25 @@ python3 Code/02_shape_inference_pass.py
 - [x] Shape inference pass
 - [x] Constant folding pass
 - [x] Dead code elimination pass
-- [ ] Memory allocation planning
+- [x] Algebraic simplification pass
+- [x] Common subexpression elimination (CSE)
+- [x] W8A16 quantization simulation
+- [x] Code generation backend (C pseudocode)
+- [x] Resizable panel dividers
 - [ ] Operator fusion pass
-- [ ] Quantization (int8 simulation)
+- [ ] Memory allocation / lifetime planning
+- [ ] Loop tiling / unrolling simulation
 - [ ] Integration study: TVM / MLIR / torch.compile
 
 ---
 
 ## Industry Context
 
-These same primitives run at scale in production systems:
+Every pass in this explorer maps directly to production compilers:
 
-- **TVM** — graph-level and loop-level optimizations for CPU/GPU/NPU
-- **MLIR** — multi-level IR framework used inside LLVM, TensorFlow, and PyTorch
-- **XLA** — Google's linear algebra compiler for TPUs
-- **torch.compile** — Dynamo captures the graph; Inductor applies passes and generates kernel code
-
-The concepts here are identical. Production compilers add hardware codegen, loop tiling, quantization, and distributed placement on top.
-
----
-
-## Screenshot
-
-![AI Compiler Explorer](Code/screenshot.png)
-
-*Graph 2 — Linear Layer: `y = ReLU(x @ W + b)`, with the Learn tab open showing inline concept explanations.*
+| Framework | How it uses these concepts |
+|-----------|---------------------------|
+| **TVM** | Relay IR → graph passes → TIR → CUDA/Metal/Hexagon codegen |
+| **MLIR** | Multi-dialect lowering; each dialect transformation is a pass |
+| **XLA** | HLO IR with aggressive fusion for TPUs; used by JAX and TF |
+| **torch.compile** | Dynamo captures graph; Inductor applies passes, emits Triton kernels |
