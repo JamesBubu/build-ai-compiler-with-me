@@ -9,25 +9,30 @@
 <script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
 <style>
 :root {
-  --bg:        #1a1a1a;
-  --canvas:    #1e1e1e;
-  --panel:     #252526;
-  --panel-hi:  #2d2d2e;
-  --border:    #3c3c3c;
-  --border-hi: #525252;
-  --text:      #cccccc;
-  --text-mid:  #999999;
-  --text-dim:  #5a5a5a;
-  --accent:    #4d9cf6;
-  --accent-bg: rgba(77,156,246,0.1);
+  --bg:       #1a1a1a;
+  --canvas:   #1e1e1e;
+  --panel:    #252526;
+  --panel2:   #2d2d2e;
+  --border:   #3c3c3c;
+  --border2:  #525252;
+  --text:     #cccccc;
+  --text-mid: #999999;
+  --text-dim: #5a5a5a;
+  --accent:   #4d9cf6;
+  --accent-bg:rgba(77,156,246,0.1);
 
-  /* muted node palette */
   --c-var:    #4ec9b0;
   --c-const:  #9cdcfe;
   --c-add:    #ce9178;
   --c-mul:    #dcdcaa;
   --c-relu:   #c586c0;
   --c-matmul: #4fc1ff;
+
+  /* pass category colors */
+  --analysis:  #4d9cf6;
+  --transform: #ce9178;
+  --hardware:  #c586c0;
+  --backend:   #4ec9b0;
 
   --f-ui:   'IBM Plex Sans', system-ui, sans-serif;
   --f-mono: 'IBM Plex Mono', monospace;
@@ -57,774 +62,719 @@ header {
   gap: 12px;
   flex-shrink: 0;
 }
-
-.app-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  letter-spacing: 0.01em;
-}
-
+.app-name { font-size: 13px; font-weight: 500; letter-spacing: 0.01em; }
 .header-sep { width: 1px; height: 16px; background: var(--border); }
-
 .header-pill {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-dim);
-  padding: 2px 8px;
-  background: var(--panel-hi);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  font-size: 11px; color: var(--text-dim);
+  padding: 2px 8px; background: var(--panel2);
+  border: 1px solid var(--border); border-radius: 10px;
 }
-
-.header-stats {
-  margin-left: auto;
-  display: flex;
-  gap: 16px;
-  font-size: 11px;
-  color: var(--text-dim);
-}
-.stat b { color: var(--text-mid); font-weight: 500; }
+.header-stats { margin-left: auto; display: flex; gap: 16px; font-size: 11px; color: var(--text-dim); }
+.header-stats b { color: var(--text-mid); font-weight: 500; }
 
 /* ── LAYOUT ── */
-.workspace {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
+.workspace { display: flex; flex: 1; overflow: hidden; }
 
-/* ── SIDEBAR ── */
+/* ── SIDEBARS ── */
 .sidebar {
-  width: 240px;
   background: var(--panel);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  flex-shrink: 0;
+  display: flex; flex-direction: column;
+  overflow-y: auto; flex-shrink: 0;
 }
+.sidebar-left  { width: 232px; border-right: 1px solid var(--border); }
+.sidebar-right { width: 296px; border-left:  1px solid var(--border); }
 
-.sidebar-right {
-  width: 280px;
-  border-right: none;
-  border-left: 1px solid var(--border);
-}
-
-/* section */
-.sec { padding: 14px 14px 16px; border-bottom: 1px solid var(--border); }
-
+/* ── SECTIONS ── */
+.sec { padding: 12px 12px 14px; border-bottom: 1px solid var(--border); }
 .sec-label {
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  margin-bottom: 10px;
+  font-size: 10px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-dim); margin-bottom: 9px;
 }
 
-/* ── PRESET ITEMS ── */
+/* ── PRESETS ── */
 .preset-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  padding: 8px 10px;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  cursor: pointer;
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 7px 9px; border-radius: 4px;
+  border: 1px solid transparent; cursor: pointer;
   transition: background 0.1s, border-color 0.1s;
-  margin-bottom: 4px;
-  background: none;
-  width: 100%;
-  text-align: left;
+  margin-bottom: 4px; background: none; width: 100%; text-align: left;
 }
-.preset-item:hover { background: var(--panel-hi); border-color: var(--border); }
+.preset-item:hover  { background: var(--panel2); border-color: var(--border); }
 .preset-item.active { background: var(--accent-bg); border-color: var(--accent); }
-
-.preset-num {
-  font-family: var(--f-mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-top: 2px;
-  flex-shrink: 0;
-  width: 14px;
-}
+.preset-num { font-family: var(--f-mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; flex-shrink: 0; width: 12px; }
 .preset-item.active .preset-num { color: var(--accent); }
-
-.preset-text { flex: 1; }
-.preset-formula {
-  font-family: var(--f-mono);
-  font-size: 12px;
-  color: var(--text);
-  line-height: 1.3;
-}
+.preset-formula { font-family: var(--f-mono); font-size: 11.5px; color: var(--text); line-height: 1.3; }
 .preset-item.active .preset-formula { color: var(--accent); }
-.preset-desc {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
+.preset-desc { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
 
-/* ── FORM ELEMENTS ── */
-.field { margin-bottom: 10px; }
-.field:last-child { margin-bottom: 0; }
-
-.field-label {
-  display: block;
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-bottom: 4px;
-}
+/* ── FORM ── */
+.field { margin-bottom: 8px; }
+.field-label { display: block; font-size: 10px; color: var(--text-dim); margin-bottom: 3px; }
 
 input, select {
-  width: 100%;
-  height: 28px;
-  padding: 0 8px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  color: var(--text);
-  font-family: var(--f-mono);
-  font-size: 12px;
-  outline: none;
-  transition: border-color 0.12s;
-  appearance: none;
+  width: 100%; height: 26px; padding: 0 7px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 3px; color: var(--text);
+  font-family: var(--f-mono); font-size: 11px; outline: none;
+  transition: border-color 0.12s; appearance: none;
 }
 input:focus, select:focus { border-color: var(--accent); }
-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px; cursor: pointer; }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 7px center; padding-right: 22px; cursor: pointer;
+}
 select option { background: #2d2d2e; }
 
 /* ── BUTTONS ── */
 .btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 3px;
-  font-family: var(--f-ui);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px; height: 26px; padding: 0 11px;
+  border-radius: 3px; font-family: var(--f-ui); font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border);
   transition: background 0.1s, border-color 0.1s;
-  width: 100%;
-  background: var(--panel-hi);
-  color: var(--text);
+  width: 100%; background: var(--panel2); color: var(--text);
 }
-.btn:hover { background: #3a3a3b; border-color: var(--border-hi); }
-
-.btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
+.btn:hover { background: #333334; border-color: var(--border2); }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn-primary:hover { background: #5aaaf8; border-color: #5aaaf8; }
-
-.btn-run {
-  height: 36px;
-  font-size: 13px;
-  font-weight: 600;
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-  letter-spacing: 0.02em;
-}
-.btn-run:hover { background: #5aaaf8; border-color: #5aaaf8; }
-
-.btn-ghost {
-  background: transparent;
-  border-color: var(--border);
-  color: var(--text-mid);
-}
-.btn-ghost:hover { background: var(--panel-hi); color: var(--text); }
-
-.btn-danger {
-  background: transparent;
-  border-color: var(--border);
-  color: #f48771;
-}
+.btn-run { height: 34px; font-size: 13px; font-weight: 600; background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-run:hover { background: #5aaaf8; }
+.btn-ghost { background: transparent; border-color: var(--border); color: var(--text-mid); }
+.btn-ghost:hover { background: var(--panel2); color: var(--text); }
+.btn-danger { background: transparent; border-color: var(--border); color: #f48771; }
 .btn-danger:hover { background: rgba(244,135,113,0.08); border-color: #f48771; }
 
 /* ── PASS BUTTONS ── */
+.pass-group { margin-bottom: 12px; }
+.pass-group-label {
+  font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 3px 8px 4px;
+  margin-bottom: 5px; display: inline-block; border-radius: 2px;
+}
+.label-analysis  { color: var(--analysis);  background: rgba(77,156,246,0.1); }
+.label-transform { color: var(--transform); background: rgba(206,145,120,0.1); }
+.label-hardware  { color: var(--hardware);  background: rgba(197,134,192,0.1); }
+.label-backend   { color: var(--backend);   background: rgba(78,201,176,0.1); }
+
 .pass-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  padding: 10px 10px;
-  background: var(--panel-hi);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  cursor: pointer;
-  text-align: left;
-  width: 100%;
-  margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; background: var(--panel2);
+  border: 1px solid var(--border); border-radius: 3px;
+  cursor: pointer; width: 100%; margin-bottom: 4px;
   transition: background 0.1s, border-color 0.1s;
-  color: var(--text);
-  font-family: var(--f-ui);
+  color: var(--text); font-family: var(--f-ui);
 }
-.pass-btn:hover { background: #333334; border-color: var(--border-hi); }
-.pass-badge {
-  font-size: 10px;
-  color: var(--text-dim);
-  letter-spacing: 0.06em;
-}
-.pass-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.pass-btn:hover { background: #333334; border-color: var(--border2); }
+.pass-name { font-size: 12px; font-weight: 500; text-align: left; }
+.pass-desc { font-size: 10px; color: var(--text-dim); text-align: left; margin-top: 2px; }
+.pass-btn-inner { display: flex; flex-direction: column; flex: 1; }
+.pass-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-left: 8px; }
 
 /* ── TABS ── */
-.tab-bar {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
+.tab-bar { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .tab-btn {
-  flex: 1;
-  height: 36px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-dim);
-  font-family: var(--f-ui);
-  font-size: 12px;
-  cursor: pointer;
+  flex: 1; height: 34px; background: none; border: none;
+  border-bottom: 2px solid transparent; color: var(--text-dim);
+  font-family: var(--f-ui); font-size: 12px; cursor: pointer;
   transition: color 0.12s, border-color 0.12s;
-  letter-spacing: 0.02em;
 }
 .tab-btn:hover { color: var(--text); }
 .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 
-.tab-pane { display: none; padding: 14px; overflow-y: auto; flex: 1; flex-direction: column; gap: 0; }
-.tab-pane.active { display: flex; }
+.tab-pane { display: none; padding: 12px; overflow-y: auto; flex: 1; }
+.tab-pane.active { display: flex; flex-direction: column; }
 
-/* ── GRAPH CANVAS ── */
-.graph-wrap {
-  flex: 1;
-  position: relative;
-  background: var(--canvas);
-  overflow: hidden;
-}
-
-/* Subtle dot grid — Figma style */
+/* ── GRAPH ── */
+.graph-wrap { flex: 1; position: relative; background: var(--canvas); overflow: hidden; }
 .graph-wrap::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px);
-  background-size: 24px 24px;
-  pointer-events: none;
+  content: ''; position: absolute; inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 24px 24px; pointer-events: none;
 }
-
 #graph-canvas { width: 100%; height: 100%; }
 
 /* ── NODE POPUP ── */
 #node-popup {
-  position: absolute;
-  bottom: 14px;
-  left: 14px;
-  width: 210px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  z-index: 10;
-  display: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  overflow: hidden;
+  position: absolute; bottom: 14px; left: 14px; width: 204px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 5px; z-index: 10; display: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.45); overflow: hidden;
 }
-
-.popup-header {
-  padding: 8px 12px;
-  background: var(--panel-hi);
+.popup-hdr {
+  padding: 7px 11px; background: var(--panel2);
   border-bottom: 1px solid var(--border);
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
+  font-size: 9px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text-dim);
 }
-
-.popup-body { padding: 10px 12px; }
-
-.popup-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 5px;
-  font-size: 12px;
-}
+.popup-body { padding: 10px 11px; }
+.popup-name { font-size: 14px; font-weight: 600; margin-bottom: 7px; }
+.popup-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; font-size: 11px; }
 .popup-key { color: var(--text-dim); }
-.popup-val { font-family: var(--f-mono); font-size: 11px; color: var(--text); }
-.popup-node-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-.popup-footer { padding: 8px 12px; border-top: 1px solid var(--border); }
+.popup-val { font-family: var(--f-mono); font-size: 10px; color: var(--text); max-width: 120px; text-align: right; word-break: break-all; }
+.popup-ftr { padding: 8px 11px; border-top: 1px solid var(--border); }
 
-/* ── LOG BOX ── */
+/* ── LOGS ── */
 .log-box {
-  font-family: var(--f-mono);
-  font-size: 11.5px;
-  line-height: 1.7;
-  color: var(--text-mid);
-  padding: 10px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  min-height: 80px;
-  max-height: 210px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  margin-top: 8px;
+  font-family: var(--f-mono); font-size: 11px; line-height: 1.75;
+  color: var(--text-mid); padding: 10px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 3px;
+  min-height: 70px; max-height: 200px; overflow-y: auto;
+  white-space: pre-wrap; margin-top: 8px;
+}
+.code-box {
+  font-family: var(--f-mono); font-size: 11px; line-height: 1.75;
+  padding: 10px; background: #141414; border: 1px solid var(--border);
+  border-radius: 3px; min-height: 70px; max-height: 260px;
+  overflow-y: auto; white-space: pre; overflow-x: auto; margin-top: 8px;
 }
 .ok  { color: #4ec9b0; }
 .inf { color: #9cdcfe; }
 .wrn { color: #dcdcaa; }
 .err { color: #f48771; }
 .dim { color: var(--text-dim); }
+.kw  { color: #569cd6; }
+.ty  { color: #4ec9b0; }
+.cm  { color: #6a9955; }
+.nm  { color: #9cdcfe; }
+.op  { color: var(--text-mid); }
 
 /* ── VAR INPUTS ── */
-.var-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 7px;
-}
-.var-label {
-  font-family: var(--f-mono);
-  font-size: 12px;
-  color: var(--c-var);
-  width: 48px;
-  flex-shrink: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.var-row { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.var-label { font-family: var(--f-mono); font-size: 12px; color: var(--c-var); width: 44px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .var-row input { flex: 1; }
 
 /* ── EDGE LIST ── */
-.edge-list { margin-top: 8px; }
+.edge-list { margin-top: 7px; }
 .edge-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-  font-family: var(--f-mono);
-  font-size: 11px;
-  color: var(--text-dim);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 3px 0; font-family: var(--f-mono); font-size: 10px; color: var(--text-dim);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
 }
-.edge-del {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-dim);
-  font-size: 14px;
-  line-height: 1;
-  padding: 0 2px;
-}
+.edge-del { background: none; border: none; cursor: pointer; color: var(--text-dim); font-size: 14px; padding: 0 2px; }
 .edge-del:hover { color: #f48771; }
 
 /* ── LEGEND ── */
 .legend { display: flex; flex-wrap: wrap; gap: 4px; }
 .leg {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--text-dim);
-  padding: 2px 7px;
-  background: var(--panel-hi);
-  border: 1px solid var(--border);
-  border-radius: 3px;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--text-dim); padding: 2px 7px;
+  background: var(--panel2); border: 1px solid var(--border); border-radius: 2px;
 }
-.leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.leg-dot { width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0; }
 
-/* ── STATUS BAR ── */
+/* ── STATUS ── */
 .statusbar {
-  height: 24px;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  gap: 12px;
-  background: var(--panel);
-  border-top: 1px solid var(--border);
-  font-size: 11px;
-  color: var(--text-dim);
-  flex-shrink: 0;
+  height: 23px; display: flex; align-items: center; padding: 0 13px;
+  gap: 12px; background: var(--panel); border-top: 1px solid var(--border);
+  font-size: 10px; color: var(--text-dim); flex-shrink: 0;
 }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ec9b0; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-var); flex-shrink: 0; }
 
 /* ── TOAST ── */
 .toast {
-  position: fixed;
-  bottom: 32px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--panel-hi);
-  border: 1px solid var(--border-hi);
-  color: var(--text);
-  padding: 6px 16px;
-  border-radius: 4px;
-  font-size: 12px;
-  z-index: 999;
-  pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+  background: var(--panel2); border: 1px solid var(--border2);
+  color: var(--text); padding: 6px 16px; border-radius: 3px;
+  font-size: 12px; z-index: 999; pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
   animation: tIn 0.15s ease, tOut 0.2s ease 2.2s forwards;
 }
-@keyframes tIn  { from{opacity:0;transform:translateX(-50%) translateY(6px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+@keyframes tIn  { from{opacity:0;transform:translateX(-50%) translateY(5px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 @keyframes tOut { to{opacity:0} }
 
-/* ── LEARN TAB ── */
-.learn-section { margin-bottom: 18px; }
-.learn-h { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-.learn-p { font-size: 12px; color: var(--text-dim); line-height: 1.7; margin-bottom: 6px; }
+/* ── ACCORDION (Learn Tab) ── */
+.acc { border-bottom: 1px solid var(--border); }
+.acc-hdr {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0 10px; cursor: pointer; user-select: none;
+}
+.acc-hdr:hover .acc-title { color: var(--text); }
+.acc-title { font-size: 12px; font-weight: 500; color: var(--text-mid); transition: color 0.12s; }
+.acc-icon { font-size: 14px; color: var(--text-dim); line-height: 1; transition: transform 0.15s; }
+.acc.open .acc-title { color: var(--text); }
+.acc.open .acc-icon { transform: rotate(45deg); }
+.acc-body { display: none; padding-bottom: 14px; }
+.acc.open .acc-body { display: block; }
+
+.learn-p { font-size: 11.5px; color: var(--text-dim); line-height: 1.75; margin-bottom: 8px; }
 .learn-code {
-  font-family: var(--f-mono);
-  font-size: 11px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--accent);
-  padding: 8px 10px;
-  border-radius: 2px;
-  color: var(--text-mid);
-  line-height: 1.65;
-  white-space: pre;
-  margin-bottom: 8px;
-  overflow-x: auto;
+  font-family: var(--f-mono); font-size: 10.5px; background: var(--bg);
+  border: 1px solid var(--border); border-left: 2px solid var(--accent);
+  padding: 8px 10px; border-radius: 2px; line-height: 1.65;
+  white-space: pre; overflow-x: auto; margin-bottom: 8px; color: var(--text-mid);
 }
 .learn-tag {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-dim);
-  background: var(--panel-hi);
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  padding: 1px 6px;
-  margin-bottom: 5px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  display: inline-block; font-size: 9px; font-weight: 600; color: var(--text-dim);
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 2px; padding: 1px 6px; margin: 6px 0 4px;
+  text-transform: uppercase; letter-spacing: 0.06em;
 }
+.learn-rule {
+  font-family: var(--f-mono); font-size: 11px; background: var(--panel2);
+  border: 1px solid var(--border); border-radius: 3px; padding: 7px 10px;
+  margin-bottom: 6px; color: var(--text);
+}
+.learn-rule span { color: var(--c-relu); }
 
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <span class="app-name">AI Compiler Explorer</span>
   <div class="header-sep"></div>
-  <span class="header-pill">Toy IR</span>
+  <span class="header-pill">Toy IR · v2</span>
   <div class="header-stats">
-    <span class="stat">Nodes <b id="hdr-nodes">0</b></span>
-    <span class="stat">Edges <b id="hdr-edges">0</b></span>
+    <span>Nodes <b id="hdr-nodes">0</b></span>
+    <span>Edges <b id="hdr-edges">0</b></span>
   </div>
 </header>
 
 <div class="workspace">
 
-  <!-- ── LEFT SIDEBAR ── -->
-  <div class="sidebar">
-
-    <div class="sec">
-      <div class="sec-label">Graphs</div>
-      <button class="preset-item" id="p1" onclick="loadPreset(1)">
-        <span class="preset-num">1</span>
-        <div class="preset-text">
-          <div class="preset-formula">ReLU(x + y)</div>
-          <div class="preset-desc">Basic element-wise ops</div>
-        </div>
-      </button>
-      <button class="preset-item" id="p2" onclick="loadPreset(2)">
-        <span class="preset-num">2</span>
-        <div class="preset-text">
-          <div class="preset-formula">ReLU(x @ W + b)</div>
-          <div class="preset-desc">Dense / linear layer</div>
-        </div>
-      </button>
-      <button class="preset-item" id="p3" onclick="loadPreset(3)">
-        <span class="preset-num">3</span>
-        <div class="preset-text">
-          <div class="preset-formula">ReLU(a+b) + ReLU(c+d)</div>
-          <div class="preset-desc">Two parallel branches</div>
-        </div>
-      </button>
-    </div>
-
-    <div class="sec">
-      <div class="sec-label">Add Node</div>
-      <div class="field">
-        <label class="field-label">Type</label>
-        <select id="ntype" onchange="onTypeChange()">
-          <option value="Variable">Variable</option>
-          <option value="Constant">Constant</option>
-          <option value="Add">Add</option>
-          <option value="Mul">Mul</option>
-          <option value="ReLU">ReLU</option>
-          <option value="MatMul">MatMul</option>
-        </select>
+<!-- ══ LEFT ══ -->
+<div class="sidebar sidebar-left">
+  <div class="sec">
+    <div class="sec-label">Graphs</div>
+    <button class="preset-item" id="p1" onclick="loadPreset(1)">
+      <span class="preset-num">1</span>
+      <div>
+        <div class="preset-formula">ReLU(x + y)</div>
+        <div class="preset-desc">Basic element-wise ops</div>
       </div>
-      <div class="field">
-        <label class="field-label">Name</label>
-        <input id="nname" type="text" placeholder="x, weight, relu1…">
+    </button>
+    <button class="preset-item" id="p2" onclick="loadPreset(2)">
+      <span class="preset-num">2</span>
+      <div>
+        <div class="preset-formula">ReLU(x @ W + b)</div>
+        <div class="preset-desc">Dense / linear layer</div>
       </div>
-      <div id="row-shape" class="field">
-        <label class="field-label">Shape  (e.g. 3 or 3,4)</label>
-        <input id="nshape" type="text" placeholder="3  or  3,4">
+    </button>
+    <button class="preset-item" id="p3" onclick="loadPreset(3)">
+      <span class="preset-num">3</span>
+      <div>
+        <div class="preset-formula">ReLU(a+b) + ReLU(a+b)</div>
+        <div class="preset-desc">CSE demo: duplicate subexpr</div>
       </div>
-      <div id="row-value" class="field" style="display:none">
-        <label class="field-label">Value  (e.g. 1,2,3 or [[1,2],[3,4]])</label>
-        <input id="nvalue" type="text" placeholder="comma-separated">
-      </div>
-      <button class="btn btn-primary" onclick="doAddNode()" style="margin-top:4px">Add Node</button>
-    </div>
-
-    <div class="sec">
-      <div class="sec-label">Add Edge</div>
-      <div class="field">
-        <label class="field-label">From (producer)</label>
-        <select id="efrom"></select>
-      </div>
-      <div class="field">
-        <label class="field-label">To (consumer)</label>
-        <select id="eto"></select>
-      </div>
-      <button class="btn btn-ghost" onclick="doAddEdge()" style="margin-top:4px">Connect</button>
-      <div class="edge-list" id="edge-list"></div>
-    </div>
-
-    <div class="sec">
-      <div class="sec-label">Node Types</div>
-      <div class="legend">
-        <div class="leg"><div class="leg-dot" style="background:var(--c-var)"></div>Variable</div>
-        <div class="leg"><div class="leg-dot" style="background:var(--c-const)"></div>Constant</div>
-        <div class="leg"><div class="leg-dot" style="background:var(--c-add)"></div>Add / Mul</div>
-        <div class="leg"><div class="leg-dot" style="background:var(--c-relu)"></div>ReLU</div>
-        <div class="leg"><div class="leg-dot" style="background:var(--c-matmul)"></div>MatMul</div>
-      </div>
-    </div>
-
-    <div class="sec" style="margin-top:auto">
-      <button class="btn btn-danger" onclick="clearGraph()">Clear Graph</button>
-    </div>
-
+    </button>
   </div>
 
-  <!-- ── GRAPH CANVAS ── -->
-  <div class="graph-wrap">
-    <div id="graph-canvas"></div>
+  <div class="sec">
+    <div class="sec-label">Add Node</div>
+    <div class="field">
+      <label class="field-label">Type</label>
+      <select id="ntype" onchange="onTypeChange()">
+        <option value="Variable">Variable</option>
+        <option value="Constant">Constant</option>
+        <option value="Add">Add</option>
+        <option value="Mul">Mul</option>
+        <option value="ReLU">ReLU</option>
+        <option value="MatMul">MatMul</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label">Name</label>
+      <input id="nname" type="text" placeholder="x, relu1, weight…">
+    </div>
+    <div id="row-shape" class="field">
+      <label class="field-label">Shape  (e.g. 3  or  3,4)</label>
+      <input id="nshape" type="text" placeholder="3  or  3,4">
+    </div>
+    <div id="row-value" class="field" style="display:none">
+      <label class="field-label">Value  (e.g. 1,2,3  or  [[1,2],[3,4]])</label>
+      <input id="nvalue" type="text" placeholder="comma-separated">
+    </div>
+    <button class="btn btn-primary" onclick="doAddNode()" style="margin-top:4px">Add Node</button>
+  </div>
 
-    <!-- Node inspector -->
-    <div id="node-popup">
-      <div class="popup-header">Node Inspector</div>
-      <div class="popup-body">
-        <div id="popup-name" class="popup-node-name"></div>
-        <div id="popup-rows"></div>
-      </div>
-      <div class="popup-footer">
-        <button class="btn btn-danger" style="height:26px;font-size:11px" onclick="deleteSelected()">Delete Node</button>
-      </div>
+  <div class="sec">
+    <div class="sec-label">Add Edge</div>
+    <div class="field">
+      <label class="field-label">From (producer)</label>
+      <select id="efrom"></select>
+    </div>
+    <div class="field">
+      <label class="field-label">To (consumer)</label>
+      <select id="eto"></select>
+    </div>
+    <button class="btn btn-ghost" onclick="doAddEdge()" style="margin-top:2px">Connect</button>
+    <div class="edge-list" id="edge-list"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-label">Node Types</div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:var(--c-var)"></div>Variable</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--c-const)"></div>Constant</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--c-add)"></div>Add / Mul</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--c-relu)"></div>ReLU</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--c-matmul)"></div>MatMul</div>
     </div>
   </div>
 
-  <!-- ── RIGHT SIDEBAR ── -->
-  <div class="sidebar sidebar-right">
-    <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab('run',this)">Run</button>
-      <button class="tab-btn" onclick="switchTab('passes',this)">Passes</button>
-      <button class="tab-btn" onclick="switchTab('learn',this)">Learn</button>
-    </div>
-
-    <!-- RUN -->
-    <div id="tab-run" class="tab-pane active">
-      <button class="btn btn-run" onclick="runGraph()">▶  Run Graph</button>
-
-      <div style="margin-top:16px">
-        <div class="sec-label">Variable Inputs</div>
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:8px">Comma-separated values matching shape</div>
-        <div id="var-inputs"></div>
-      </div>
-
-      <div style="margin-top:14px">
-        <div class="sec-label">Output</div>
-        <div class="log-box" id="run-log">// Press Run Graph to evaluate.
-// Results appear here.</div>
-      </div>
-    </div>
-
-    <!-- PASSES -->
-    <div id="tab-passes" class="tab-pane">
-      <button class="pass-btn" onclick="passShape()">
-        <div class="pass-badge">Analysis</div>
-        <div class="pass-name">Shape Inference</div>
-      </button>
-      <button class="pass-btn" onclick="passFold()">
-        <div class="pass-badge">Transformation</div>
-        <div class="pass-name">Constant Folding</div>
-      </button>
-      <button class="pass-btn" onclick="passDCE()">
-        <div class="pass-badge">Transformation</div>
-        <div class="pass-name">Dead Code Elimination</div>
-      </button>
-
-      <div style="margin-top:4px">
-        <div class="sec-label">Pass Output</div>
-        <div class="log-box" id="pass-log">// Select a pass to run.</div>
-      </div>
-    </div>
-
-    <!-- LEARN -->
-    <div id="tab-learn" class="tab-pane" style="overflow-y:auto">
-
-      <div class="learn-section">
-        <div class="learn-h">Computation Graph</div>
-        <div class="learn-p">A DAG where nodes are operations and edges are tensors. The graph is constructed at <em>definition time</em> — no computation occurs until you explicitly evaluate it (lazy / deferred execution).</div>
-        <div class="learn-code">x = Variable("x")         # no value yet
-z = ReLU(Add(x, y))       # build structure
-evaluate(z, {x:[1,2,3]})  # execute</div>
-      </div>
-
-      <div class="learn-section">
-        <div class="learn-h">Node Types</div>
-        <div class="learn-tag">Variable</div>
-        <div class="learn-p">Symbolic inputs. Shape known at compile time; value supplied only at runtime.</div>
-        <div class="learn-tag">Constant</div>
-        <div class="learn-p">Fixed tensors (weights, biases). Both shape and value known at compile time — prime candidates for constant folding.</div>
-        <div class="learn-tag">Operators</div>
-        <div class="learn-p">Pure functional compute nodes: Add, Mul, ReLU, MatMul. Output depends only on inputs.</div>
-      </div>
-
-      <div class="learn-section">
-        <div class="learn-h">Compiler Passes</div>
-        <div class="learn-tag">Shape Inference</div>
-        <div class="learn-p">Traverses the graph, deriving output shapes without executing. Required before memory can be allocated.</div>
-        <div class="learn-code">Variable x  → shape [3]
-Add(x, y)   → shape [3]  ← derived
-ReLU(add)   → shape [3]  ← propagated</div>
-        <div class="learn-tag">Constant Folding</div>
-        <div class="learn-p">If every input to an op is a Constant, pre-compute the result and replace the op with a new Constant node. Reduces runtime work.</div>
-        <div class="learn-code">Const a=[1,2], Const b=[3,4]
-Add(a,b) → folded to Const [4,6]</div>
-        <div class="learn-tag">Dead Code Elimination</div>
-        <div class="learn-p">Traces backward from output nodes. Nodes unreachable from any output contribute nothing — remove them.</div>
-      </div>
-
-      <div class="learn-section">
-        <div class="learn-h">Industry Context</div>
-        <div class="learn-p">The same passes run at scale in <b>TVM</b>, <b>MLIR</b>, <b>XLA</b>, and <b>torch.compile</b> (Dynamo + Inductor). The IR concepts are identical — production compilers add GPU codegen, loop tiling, quantization, and distributed placement on top.</div>
-      </div>
-
-    </div>
+  <div class="sec">
+    <button class="btn btn-danger" style="margin-top:0" onclick="clearGraph()">Clear Graph</button>
   </div>
-
 </div>
 
-<!-- STATUS BAR -->
+<!-- ══ CANVAS ══ -->
+<div class="graph-wrap">
+  <div id="graph-canvas"></div>
+  <div id="node-popup">
+    <div class="popup-hdr">Node Inspector</div>
+    <div class="popup-body">
+      <div id="popup-name" class="popup-name"></div>
+      <div id="popup-rows"></div>
+    </div>
+    <div class="popup-ftr">
+      <button class="btn btn-danger" style="height:24px;font-size:10px" onclick="deleteSelected()">Delete Node</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RIGHT ══ -->
+<div class="sidebar sidebar-right">
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('run',this)">Run</button>
+    <button class="tab-btn" onclick="switchTab('passes',this)">Passes</button>
+    <button class="tab-btn" onclick="switchTab('learn',this)">Learn</button>
+  </div>
+
+  <!-- RUN TAB -->
+  <div id="tab-run" class="tab-pane active">
+    <button class="btn btn-run" onclick="runGraph()">▶  Run Graph</button>
+    <div style="margin-top:14px">
+      <div class="sec-label">Variable Inputs</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:7px">Comma-separated values matching each variable's shape</div>
+      <div id="var-inputs"></div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="sec-label">Execution Output</div>
+      <div class="log-box" id="run-log">// Press Run Graph to evaluate.
+// Results will appear here.</div>
+    </div>
+  </div>
+
+  <!-- PASSES TAB -->
+  <div id="tab-passes" class="tab-pane">
+
+    <div class="pass-group">
+      <div class="pass-group-label label-analysis">Analysis</div>
+      <button class="pass-btn" onclick="passShape()">
+        <div class="pass-btn-inner">
+          <div class="pass-name">Shape Inference</div>
+          <div class="pass-desc">Derive tensor shapes at compile time</div>
+        </div>
+        <div class="pass-dot" style="background:var(--analysis)"></div>
+      </button>
+    </div>
+
+    <div class="pass-group">
+      <div class="pass-group-label label-transform">Transformation</div>
+      <button class="pass-btn" onclick="passFold()">
+        <div class="pass-btn-inner">
+          <div class="pass-name">Constant Folding</div>
+          <div class="pass-desc">Pre-compute all-constant subgraphs</div>
+        </div>
+        <div class="pass-dot" style="background:var(--transform)"></div>
+      </button>
+      <button class="pass-btn" onclick="passAlgSimp()">
+        <div class="pass-btn-inner">
+          <div class="pass-name">Algebraic Simplification</div>
+          <div class="pass-desc">x+0→x, x×1→x, x×0→0</div>
+        </div>
+        <div class="pass-dot" style="background:var(--transform)"></div>
+      </button>
+      <button class="pass-btn" onclick="passCSE()">
+        <div class="pass-btn-inner">
+          <div class="pass-name">CSE</div>
+          <div class="pass-desc">Merge duplicate subexpressions</div>
+        </div>
+        <div class="pass-dot" style="background:var(--transform)"></div>
+      </button>
+      <button class="pass-btn" onclick="passDCE()">
+        <div class="pass-btn-inner">
+          <div class="pass-name">Dead Code Elimination</div>
+          <div class="pass-desc">Remove nodes not reaching any output</div>
+        </div>
+        <div class="pass-dot" style="background:var(--transform)"></div>
+      </button>
+    </div>
+
+    <div class="pass-group">
+      <div class="pass-group-label label-hardware">Hardware</div>
+      <button class="pass-btn" onclick="passQuantize()">
+        <div class="pass-btn-inner">
+          <div class="pass-name">W8A16 Quantization</div>
+          <div class="pass-desc">Quantize weights to INT8, keep activations FP16</div>
+        </div>
+        <div class="pass-dot" style="background:var(--hardware)"></div>
+      </button>
+    </div>
+
+    <div class="pass-group">
+      <div class="pass-group-label label-backend">Backend</div>
+      <button class="pass-btn" onclick="passCodeGen()">
+        <div class="pass-btn-inner">
+          <div class="pass-name">Code Generation</div>
+          <div class="pass-desc">Emit C-like pseudocode from the graph</div>
+        </div>
+        <div class="pass-dot" style="background:var(--backend)"></div>
+      </button>
+    </div>
+
+    <div class="sec-label" style="margin-top:4px">Pass Output</div>
+    <div class="log-box" id="pass-log" style="max-height:180px">// Select a pass to run.</div>
+    <div id="codegen-wrap" style="display:none;margin-top:8px">
+      <div class="sec-label">Generated Code</div>
+      <div class="code-box" id="codegen-out"></div>
+    </div>
+  </div>
+
+  <!-- LEARN TAB -->
+  <div id="tab-learn" class="tab-pane" style="overflow-y:auto">
+
+    <div class="acc open">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Computation Graph &amp; Lazy Evaluation</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-p">A <b style="color:var(--text)">Directed Acyclic Graph (DAG)</b> is the universal IR of every AI framework. Nodes are operators; edges are tensors. The graph is constructed at <em>definition time</em> — no data flows until you explicitly evaluate it.</div>
+        <div class="learn-p">This is called <b style="color:var(--text)">Lazy Evaluation</b> (TF 1.x, JAX). Contrast with <b style="color:var(--text)">Eager Execution</b> (PyTorch default), where ops run immediately. Lazy graphs give the compiler room to optimize before running anything.</div>
+        <div class="learn-code">x = Variable("x")         # just a symbol, no value
+z = ReLU(Add(x, y))       # build graph structure
+evaluate(z, {x:[1,2,3]})  # ← runtime starts here</div>
+        <div class="learn-p"><b style="color:var(--text)">Compile Time</b> — the compiler reads the blueprint, runs passes, plans memory, and generates machine code.<br><b style="color:var(--text)">Run Time</b> — the hardware receives real tensor data and executes the compiled code.</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Shape Inference</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Analysis Pass  ·  Bottom-Up</div>
+        <div class="learn-p">Before any tensor is allocated, the compiler walks the graph bottom-up, deriving the output shape of every node from its inputs. This is essential for <b style="color:var(--text)">static memory allocation</b> — the hardware needs to know exactly how much memory each layer needs <em>before</em> execution begins.</div>
+        <div class="learn-p">It also catches bugs early: if an Add node receives mismatched shapes, the compiler throws an error at compile time instead of crashing during a long training run.</div>
+        <div class="learn-code">Variable x  →  shape [3]
+Variable y  →  shape [3]
+Add(x, y)   →  shape [3]   ← derived from inputs
+ReLU(add)   →  shape [3]   ← propagated</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Constant Folding</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Transformation Pass</div>
+        <div class="learn-p">If all inputs to an op are Constants, the compiler can <b style="color:var(--text)">pre-compute the result at compile time</b> and replace the entire subgraph with a single new Constant node. The GPU never sees that computation — it's already been done.</div>
+        <div class="learn-code">Const a = [1, 2, 3]
+Const b = [4, 5, 6]
+Add(a, b)  →  folded to Const [5, 7, 9]</div>
+        <div class="learn-p">This is the exception to "compilers don't compute values." When the answer is fixed and predictable, why not compute it once and save the work?</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Algebraic Simplification</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Transformation Pass</div>
+        <div class="learn-p">Uses basic math identities to eliminate unnecessary operations — even when variables are involved.</div>
+        <div class="learn-rule"><span>x</span> + 0  →  <span>x</span></div>
+        <div class="learn-rule"><span>x</span> × 1  →  <span>x</span></div>
+        <div class="learn-rule"><span>x</span> × 0  →  Constant(0)</div>
+        <div class="learn-p">"Who writes <code>x + 0</code>?" — other passes do. When BatchNorm is fused into Conv, its bias can become zero. Algebraic Simplification then cleans up the leftover <code>+ 0</code> nodes. This shows how passes <b style="color:var(--text)">chain together</b>: each pass sets up opportunities for the next.</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Common Subexpression Elimination (CSE)</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Transformation Pass</div>
+        <div class="learn-p">If the compiler finds two nodes performing the <b style="color:var(--text)">exact same operation on the same inputs</b>, it merges them into one. All consumers of the duplicate node are redirected to the canonical one.</div>
+        <div class="learn-code">y1 = relu(x * w)       # x*w computed
+y2 = relu(x * w) + b   # x*w computed AGAIN ← wasteful
+
+# After CSE:
+tmp = x * w            # computed once
+y1  = relu(tmp)
+y2  = relu(tmp) + b    # shares tmp</div>
+        <div class="learn-p">In complex networks like ResNet or Inception, engineers sometimes inadvertently compute the same feature map multiple times. CSE guarantees it's computed exactly once on the GPU.</div>
+        <div class="learn-p"><b style="color:var(--text)">Try it:</b> load Graph 3 (CSE demo) — it has <code>Add(a,b)</code> computed twice. Run CSE and watch one node disappear.</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Dead Code Elimination (DCE)</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Transformation Pass  ·  Top-Down</div>
+        <div class="learn-p">Unlike Shape Inference (bottom-up), DCE asks a top-down question: <em>"Starting from the outputs, what do I actually need?"</em></div>
+        <div class="learn-p">The compiler traces backward via BFS from output nodes. Any node not reachable from an output is "dead" — it contributes nothing to the result.</div>
+        <div class="learn-p"><b style="color:var(--text)">Real-world impact:</b> training graphs contain Loss and Gradient nodes. At inference time, you only need predictions — not gradients. DCE automatically removes all Loss/Backprop nodes, making the deployed model significantly smaller.</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">W8A16 Quantization</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Hardware Pass  ·  Memory Bound Optimization</div>
+        <div class="learn-p">Modern AI hardware is fast at computation but slow at moving data. Weights in large models saturate the memory bus — this is called <b style="color:var(--text)">Memory Bound</b>.</div>
+        <div class="learn-p"><b style="color:var(--text)">W8A16</b> quantizes weights (W) to INT8 while keeping activations (A) in FP16. The bandwidth savings are ~2×. Activations stay in FP16 because they contain unpredictable outliers that would damage accuracy if forced to INT8.</div>
+        <div class="learn-code">Scale = max(|W|) / 127
+W_int8  = round(W / Scale)       # FP32 → INT8 (stored)
+W_dequant = W_int8 × Scale       # INT8 → FP32 (at runtime)</div>
+        <div class="learn-p">The compiler inserts <code>Dequantize</code> nodes into the graph. The hardware loads compact INT8 weights, then dequantizes just-in-time before the multiply.</div>
+        <div class="learn-p"><b style="color:var(--text)">Channel-wise vs Tensor-wise:</b> a single global scale wastes precision when one channel has an outlier. Channel-wise gives each output channel its own scale.</div>
+        <div class="learn-p"><b style="color:var(--text)">Static Quantization (PTQ):</b> run 100–500 representative samples through the model, record per-layer activation statistics, hardcode the scales. No dynamic overhead at runtime.</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Code Generation (Backend)</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Backend Pass</div>
+        <div class="learn-p">All previous passes worked on Python objects in memory. But <b style="color:var(--text)">hardware cannot read Python objects</b>. The final step is translating the optimized DAG into low-level code (C / CUDA / device-specific assembly) that a traditional compiler like GCC or NVCC can compile into machine code.</div>
+        <div class="learn-p">The key insight: instead of <em>executing</em> each node, the backend <em>prints a string</em> for each node in topological order.</div>
+        <div class="learn-code">// Unoptimized FP32:
+float v0 = 3.1415f;     // load constant
+float v1 = A * v0;      // FP32 multiply
+
+// After W8A16 quantization:
+int8_t v0  = 127;              // load INT8 weight
+float  v1  = (float)v0 * S;   // dequantize
+float  v2  = A * v1;          // FP32 multiply</div>
+        <div class="learn-p">In production: TVM generates CUDA kernels, MLIR lowers through multiple dialect levels, PyTorch Inductor generates Triton code. The concept is identical.</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Industry Frameworks</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-p">Every pass you've used in this explorer exists in production compilers — just at industrial scale with hardware-specific backends:</div>
+        <div class="learn-tag">TVM</div>
+        <div class="learn-p">Graph-level IR (Relay) → operator-level IR (TIR) → CUDA/Metal/Hexagon code. AutoTVM and AutoScheduler search for optimal loop tiling and unrolling.</div>
+        <div class="learn-tag">MLIR</div>
+        <div class="learn-p">Multi-level dialects (HLO → Linalg → LLVM IR). Each dialect transformation is a pass. Used in TensorFlow, IREE, and many TPU stacks.</div>
+        <div class="learn-tag">torch.compile</div>
+        <div class="learn-p">TorchDynamo captures the computation graph via Python bytecode tracing. Inductor applies fusion, quantization, and tiling, then emits Triton or C++ kernels.</div>
+        <div class="learn-tag">XLA</div>
+        <div class="learn-p">Google's compiler for TPUs (and GPUs). HLO (High-Level Optimizer) IR with aggressive fusion. Used under JAX and TensorFlow.</div>
+      </div>
+    </div>
+
+  </div><!-- /tab-learn -->
+</div><!-- /sidebar-right -->
+</div><!-- /workspace -->
+
 <div class="statusbar">
   <div class="status-dot"></div>
-  <span id="status-msg">Ready  ·  click a node to inspect</span>
+  <span id="status-msg">Ready  ·  click a node to inspect  ·  click background to deselect</span>
 </div>
 
 <script>
-// ─────────────────────────────────────────────
-//  DATA
-// ─────────────────────────────────────────────
-let G  = {};   // id → {id,type,name,shape,value}
+// ═══════════════════════════════════════════════════════
+//  DATA MODEL
+// ═══════════════════════════════════════════════════════
+let G  = {};   // id → {id,type,name,shape,value,quantized?}
 let E  = [];   // [{id,from,to}]
 let uid = 1;
 let selId = null;
 let visN, visE, net;
 
 const COLORS = {
-  Variable: '#4ec9b0',
-  Constant: '#9cdcfe',
-  Add:      '#ce9178',
-  Mul:      '#dcdcaa',
-  ReLU:     '#c586c0',
-  MatMul:   '#4fc1ff',
+  Variable: '#4ec9b0', Constant: '#9cdcfe',
+  Add:'#ce9178', Mul:'#dcdcaa', ReLU:'#c586c0', MatMul:'#4fc1ff',
 };
 
-// ─────────────────────────────────────────────
-//  VIS CONFIG
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+//  VIS HELPERS
+// ═══════════════════════════════════════════════════════
 function makeVisNode(n) {
   const c = COLORS[n.type] || '#888';
   let lbl = n.type + '\n' + n.name;
   if (n.shape && n.shape.length) lbl += '\n[' + n.shape.join('×') + ']';
   if (n.type === 'Constant' && n.value != null) {
-    const v = Array.isArray(n.value)
-      ? (Array.isArray(n.value[0])
-          ? n.value.map(r=>'['+r.slice(0,3).join(',')+']').join(' ').slice(0,28)
-          : n.value.slice(0,4).join(', '))
-      : n.value;
-    lbl += '\n' + v;
+    const flat = flatArr(n.value);
+    const preview = flat.slice(0,4).map(x=>typeof x==='number'?x.toFixed(2):x).join(', ');
+    lbl += '\n' + (flat.length > 4 ? preview + '…' : preview);
   }
+  if (n.quantized) lbl += '\nINT8 · s=' + n.quantized.scale.toFixed(4);
   return {
-    id: n.id,
-    label: lbl,
-    shape: 'box',
+    id: n.id, label: lbl, shape: 'box',
     color: {
-      background: '#2a2a2b',
-      border: c,
+      background: '#2a2a2b', border: c,
       highlight: { background: '#333334', border: c },
       hover:      { background: '#303031', border: c },
     },
-    font: {
-      color: '#cccccc',
-      face: 'IBM Plex Mono',
-      size: 11,
-      multi: false,
-    },
-    borderWidth: 1.5,
+    font: { color: '#cccccc', face: 'IBM Plex Mono', size: 11 },
+    borderWidth: n.quantized ? 2.5 : 1.5,
     borderWidthSelected: 2.5,
-    widthConstraint: { minimum: 100, maximum: 140 },
+    widthConstraint: { minimum: 100, maximum: 136 },
     margin: { top:8, bottom:8, left:10, right:10 },
+    borderDashes: n.quantized ? [4,2] : false,
   };
+}
+
+function flashNode(id, borderColor, duration=700) {
+  const n = G[id]; if (!n) return;
+  const c = COLORS[n.type] || '#888';
+  visN.update({ id, color: { background:'#2a2a2b', border: borderColor,
+    highlight:{background:'#333334',border:borderColor}, hover:{background:'#303031',border:borderColor} }, borderWidth: 3 });
+  setTimeout(() => { if (G[id]) visN.update(makeVisNode(G[id])); }, duration);
 }
 
 function init() {
   visN = new vis.DataSet();
   visE = new vis.DataSet();
-
   net = new vis.Network(
     document.getElementById('graph-canvas'),
     { nodes: visN, edges: visE },
     {
-      layout: {
-        hierarchical: {
-          enabled: true,
-          direction: 'UD',
-          sortMethod: 'directed',
-          nodeSpacing: 130,
-          levelSeparation: 90,
-          treeSpacing: 150,
-        },
-      },
+      layout: { hierarchical: { enabled:true, direction:'UD', sortMethod:'directed', nodeSpacing:130, levelSeparation:90, treeSpacing:150 } },
       physics: { enabled: false },
-      interaction: { hover: true, selectConnectedEdges: true, tooltipDelay: 300 },
+      interaction: { hover:true, selectConnectedEdges:true, tooltipDelay:300 },
       edges: {
-        arrows: { to: { enabled: true, scaleFactor: 0.6 } },
-        color: { color: '#444', highlight: '#4d9cf6', hover: '#4d9cf6' },
+        arrows: { to:{ enabled:true, scaleFactor:0.6 } },
+        color: { color:'#444', highlight:'#4d9cf6', hover:'#4d9cf6' },
         width: 1.5,
-        smooth: { type: 'cubicBezier', forceDirection: 'vertical', roundness: 0.4 },
+        smooth: { type:'cubicBezier', forceDirection:'vertical', roundness:0.4 },
       },
     }
   );
-
-  net.on('selectNode', p => { if (p.nodes[0]) { selId = p.nodes[0]; showPopup(selId); } });
-  net.on('deselectNode', () => { selId = null; document.getElementById('node-popup').style.display = 'none'; });
-
+  net.on('selectNode',   p => { if(p.nodes[0]){ selId=p.nodes[0]; showPopup(selId); } });
+  net.on('deselectNode', () => { selId=null; document.getElementById('node-popup').style.display='none'; });
   loadPreset(1);
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 //  GRAPH MUTATIONS
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 function _addNode(type, name, shape, value) {
   const id = 'n' + uid++;
   G[id] = { id, type, name, shape, value };
@@ -834,11 +784,11 @@ function _addNode(type, name, shape, value) {
 }
 
 function _addEdge(from, to) {
-  if (E.some(e => e.from===from && e.to===to)) { toast('Edge already exists'); return; }
-  if (from === to) { toast('Cannot self-connect'); return; }
-  const id = 'e' + uid++;
-  E.push({ id, from, to });
-  visE.add({ id, from, to });
+  if (E.some(e=>e.from===from&&e.to===to)) { toast('Edge already exists'); return; }
+  if (from===to) { toast('Cannot self-connect'); return; }
+  const id = 'e'+uid++;
+  E.push({id,from,to});
+  visE.add({id,from,to});
   refreshEdgeList(); updateCounts();
 }
 
@@ -847,15 +797,17 @@ function clearGraph() {
   visN.clear(); visE.clear();
   document.getElementById('node-popup').style.display='none';
   document.getElementById('var-inputs').innerHTML='';
+  document.getElementById('codegen-wrap').style.display='none';
   refreshSelects(); refreshEdgeList(); updateCounts();
   [1,2,3].forEach(i=>document.getElementById('p'+i).classList.remove('active'));
   logTo('run-log','// Graph cleared.');
+  logTo('pass-log','// Select a pass to run.');
   setStatus('Ready');
 }
 
 function deleteSelected() {
-  if (!selId) return;
-  E = E.filter(e=>e.from!==selId&&e.to!==selId);
+  if(!selId) return;
+  E=E.filter(e=>e.from!==selId&&e.to!==selId);
   visN.remove(selId);
   visE.getIds().forEach(eid=>{const e=visE.get(eid);if(e.from===selId||e.to===selId)visE.remove(eid);});
   delete G[selId]; selId=null;
@@ -864,40 +816,36 @@ function deleteSelected() {
   toast('Node deleted');
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 //  FORM
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 function onTypeChange() {
-  const t = document.getElementById('ntype').value;
-  document.getElementById('row-shape').style.display = (t==='Variable') ? '' : 'none';
-  document.getElementById('row-value').style.display = (t==='Constant') ? '' : 'none';
+  const t=document.getElementById('ntype').value;
+  document.getElementById('row-shape').style.display=(t==='Variable')?'':'none';
+  document.getElementById('row-value').style.display=(t==='Constant')?'':'none';
 }
 
 function doAddNode() {
-  const type = document.getElementById('ntype').value;
-  const name = document.getElementById('nname').value.trim();
-  if (!name) { toast('Enter a node name'); return; }
-  let shape=null, value=null;
-  if (type==='Variable') {
-    const s = document.getElementById('nshape').value.trim();
-    shape = s ? s.split(',').map(Number) : [];
-  } else if (type==='Constant') {
-    const v = document.getElementById('nvalue').value.trim();
-    try { value=parseVal(v); shape=shapeOf(value); }
-    catch(e) { toast('Bad value: '+e.message); return; }
+  const type=document.getElementById('ntype').value;
+  const name=document.getElementById('nname').value.trim();
+  if(!name){ toast('Enter a node name'); return; }
+  let shape=null,value=null;
+  if(type==='Variable'){
+    const s=document.getElementById('nshape').value.trim();
+    shape=s?s.split(',').map(Number):[];
+  } else if(type==='Constant'){
+    const v=document.getElementById('nvalue').value.trim();
+    try{ value=parseVal(v); shape=shapeOf(value); } catch(e){ toast('Bad value: '+e.message); return; }
   }
   _addNode(type,name,shape,value);
   refreshVarInputs();
-  document.getElementById('nname').value='';
-  document.getElementById('nshape').value='';
-  document.getElementById('nvalue').value='';
-  toast('Added: '+type+' "'+name+'"');
+  ['nname','nshape','nvalue'].forEach(id=>document.getElementById(id).value='');
+  toast('Added '+type+': "'+name+'"');
 }
 
 function doAddEdge() {
-  const f=document.getElementById('efrom').value;
-  const t=document.getElementById('eto').value;
-  if (!f||!t) { toast('Select both nodes'); return; }
+  const f=document.getElementById('efrom').value, t=document.getElementById('eto').value;
+  if(!f||!t){ toast('Select both nodes'); return; }
   _addEdge(f,t);
   toast(G[f].name+' → '+G[t].name);
 }
@@ -907,65 +855,44 @@ function delEdge(id) {
   refreshEdgeList(); updateCounts();
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 //  PRESETS
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 function loadPreset(n) {
   clearGraph();
   document.getElementById('p'+n).classList.add('active');
 
-  if (n===1) {
-    const x=_addNode('Variable','x',[3],null);
-    const y=_addNode('Variable','y',[3],null);
-    const a=_addNode('Add','add',null,null);
-    const r=_addNode('ReLU','relu',null,null);
+  if(n===1){
+    const x=_addNode('Variable','x',[3],null), y=_addNode('Variable','y',[3],null);
+    const a=_addNode('Add','add',null,null), r=_addNode('ReLU','relu',null,null);
     _addEdge(x,a); _addEdge(y,a); _addEdge(a,r);
-    logTo('run-log',
-      '<span class="ok">Loaded: z = ReLU(x + y)</span>\n'+
-      '<span class="dim">x: shape [3],  y: shape [3]\n'+
-      'Set input values below, then click Run Graph.</span>');
+    logTo('run-log','<span class="ok">Graph 1: z = ReLU(x + y)</span>\n<span class="dim">Set x and y below, then Run.</span>');
     setDefaults({x:'1,2,3', y:'4,5,6'});
     setStatus('Graph 1  ·  Basic Add + ReLU');
-  }
-  else if (n===2) {
-    const x =_addNode('Variable','x',[1,3],null);
-    const W =_addNode('Constant','W',[3,4],[[0.5,0.2,0.8,0.1],[0.3,0.7,0.2,0.4],[0.1,0.6,0.9,0.3]]);
-    const b =_addNode('Constant','b',[4],[0.1,0.2,0.1,0.3]);
+  } else if(n===2){
+    const x=_addNode('Variable','x',[1,3],null);
+    const W=_addNode('Constant','W',[3,4],[[0.5,0.2,0.8,0.1],[0.3,0.7,0.2,0.4],[0.1,0.6,0.9,0.3]]);
+    const b=_addNode('Constant','b',[4],[0.1,0.2,0.1,0.3]);
     const mm=_addNode('MatMul','matmul',null,null);
-    const ad=_addNode('Add','add',null,null);
-    const r =_addNode('ReLU','relu',null,null);
-    _addEdge(x,mm); _addEdge(W,mm);
-    _addEdge(mm,ad); _addEdge(b,ad);
-    _addEdge(ad,r);
-    logTo('run-log',
-      '<span class="ok">Loaded: y = ReLU(x @ W + b)</span>\n'+
-      '<span class="dim">Single dense layer.\n'+
-      'x:[1×3]  W:[3×4]  b:[4]  →  out:[1×4]</span>');
+    const ad=_addNode('Add','add',null,null), r=_addNode('ReLU','relu',null,null);
+    _addEdge(x,mm); _addEdge(W,mm); _addEdge(mm,ad); _addEdge(b,ad); _addEdge(ad,r);
+    logTo('run-log','<span class="ok">Graph 2: y = ReLU(x @ W + b)</span>\n<span class="dim">Dense layer. x:[1×3]  W:[3×4]  b:[4]  →  out:[1×4]\nTry: Passes → W8A16 Quantization, then Code Generation.</span>');
     setDefaults({x:'[[1,2,3]]'});
     setStatus('Graph 2  ·  Linear Layer');
+  } else if(n===3){
+    // CSE demo: Add(a,b) computed twice
+    const a=_addNode('Variable','a',[3],null), b=_addNode('Variable','b',[3],null);
+    const add1=_addNode('Add','add1',null,null), add2=_addNode('Add','add2',null,null);
+    const r1=_addNode('ReLU','relu1',null,null), r2=_addNode('ReLU','relu2',null,null);
+    const out=_addNode('Add','out',null,null);
+    _addEdge(a,add1); _addEdge(b,add1);
+    _addEdge(a,add2); _addEdge(b,add2);  // same inputs as add1 → duplicate!
+    _addEdge(add1,r1); _addEdge(add2,r2);
+    _addEdge(r1,out); _addEdge(r2,out);
+    logTo('run-log','<span class="ok">Graph 3: CSE Demo</span>\n<span class="dim">add1 and add2 both compute Add(a, b) with the same inputs.\nRun Passes → CSE to merge them into one node.</span>');
+    setDefaults({a:'1,2,3', b:'4,5,6'});
+    setStatus('Graph 3  ·  CSE Demo — duplicate subexpression');
   }
-  else if (n===3) {
-    const a =_addNode('Variable','a',[2],null);
-    const b =_addNode('Variable','b',[2],null);
-    const c =_addNode('Variable','c',[2],null);
-    const d =_addNode('Variable','d',[2],null);
-    const a1=_addNode('Add','add1',null,null);
-    const a2=_addNode('Add','add2',null,null);
-    const r1=_addNode('ReLU','relu1',null,null);
-    const r2=_addNode('ReLU','relu2',null,null);
-    const ou=_addNode('Add','out',null,null);
-    _addEdge(a,a1); _addEdge(b,a1);
-    _addEdge(c,a2); _addEdge(d,a2);
-    _addEdge(a1,r1); _addEdge(a2,r2);
-    _addEdge(r1,ou); _addEdge(r2,ou);
-    logTo('run-log',
-      '<span class="ok">Loaded: z = ReLU(a+b) + ReLU(c+d)</span>\n'+
-      '<span class="dim">Two independent branches merging at output.\n'+
-      'Demonstrates graph-level parallelism.</span>');
-    setDefaults({a:'-1,2', b:'3,-4', c:'5,6', d:'-7,8'});
-    setStatus('Graph 3  ·  Two-Branch Merge');
-  }
-
   refreshVarInputs();
 }
 
@@ -978,9 +905,9 @@ function setDefaults(map) {
   },60);
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 //  TOPO SORT
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 function topo() {
   const ids=Object.keys(G);
   const inE={}, outE={};
@@ -988,27 +915,26 @@ function topo() {
   E.forEach(e=>{inE[e.to].push(e.from); outE[e.from].push(e.to);});
   const deg={}; ids.forEach(id=>deg[id]=inE[id].length);
   const q=ids.filter(id=>deg[id]===0), order=[];
-  while(q.length){
-    const cur=q.shift(); order.push(cur);
-    outE[cur].forEach(nx=>{if(--deg[nx]===0) q.push(nx);});
-  }
+  while(q.length){ const c=q.shift(); order.push(c); outE[c].forEach(nx=>{if(--deg[nx]===0)q.push(nx);}); }
   if(order.length!==ids.length) throw new Error('Graph has a cycle!');
   return {order,inE,outE};
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 //  MATH
-// ─────────────────────────────────────────────
-function shapeOf(v){
-  if(!Array.isArray(v)) return [];
-  if(!Array.isArray(v[0])) return [v.length];
-  return [v.length,v[0].length];
+// ═══════════════════════════════════════════════════════
+function shapeOf(v){ if(!Array.isArray(v)) return []; if(!Array.isArray(v[0])) return [v.length]; return [v.length,v[0].length]; }
+function flatArr(v){ if(!Array.isArray(v)) return [v]; return v.flat(Infinity); }
+function reshapeArr(flat, shape){
+  if(!shape||shape.length===0) return flat[0];
+  if(shape.length===1) return flat.slice(0,shape[0]);
+  const s=shape[1]; return Array.from({length:shape[0]},(_,i)=>flat.slice(i*s,(i+1)*s));
 }
 function parseVal(s){
   s=s.trim();
   if(s.startsWith('[[')) return JSON.parse(s);
   const ns=s.split(',').map(Number);
-  if(ns.some(isNaN)) throw new Error('non-numeric value');
+  if(ns.some(isNaN)) throw new Error('non-numeric');
   return ns.length===1?ns[0]:ns;
 }
 function fmt(v,p=4){
@@ -1017,21 +943,26 @@ function fmt(v,p=4){
   if(!Array.isArray(v[0])) return '['+v.map(x=>x.toFixed(p)).join(', ')+']';
   return '[\n  '+v.map(r=>'['+r.map(x=>x.toFixed(p)).join(', ')+']').join(',\n  ')+'\n]';
 }
-function shapeEq(a,b){return a&&b&&a.length===b.length&&a.every((x,i)=>x===b[i]);}
+function fmtShort(v){ const f=flatArr(v); return f.slice(0,3).map(x=>typeof x==='number'?x.toFixed(2):x).join(','+(f.length>3?'…':'')); }
+function shapeEq(a,b){ return a&&b&&a.length===b.length&&a.every((x,i)=>x===b[i]); }
 
-function eAdd(a,b){if(!Array.isArray(a))return a+b;return a.map((v,i)=>Array.isArray(v)?eAdd(v,b[i]):v+b[i]);}
-function eMul(a,b){if(!Array.isArray(a))return a*b;return a.map((v,i)=>Array.isArray(v)?eMul(v,b[i]):v*b[i]);}
-function eReLU(a){if(!Array.isArray(a))return Math.max(0,a);return a.map(v=>Array.isArray(v)?eReLU(v):Math.max(0,v));}
+function isZeroVal(v){ return flatArr(v).every(x=>x===0); }
+function isOneVal(v){ return flatArr(v).every(x=>x===1); }
+
+function eAdd(a,b){ if(!Array.isArray(a)) return a+b; return a.map((v,i)=>Array.isArray(v)?eAdd(v,b[i]):v+b[i]); }
+function eMul(a,b){ if(!Array.isArray(a)) return a*b; return a.map((v,i)=>Array.isArray(v)?eMul(v,b[i]):v*b[i]); }
+function eReLU(a){ if(!Array.isArray(a)) return Math.max(0,a); return a.map(v=>Array.isArray(v)?eReLU(v):Math.max(0,v)); }
 function matmul(a,b){
   const m=a.length,k=a[0].length,n=b[0].length;
   const r=Array.from({length:m},()=>new Array(n).fill(0));
   for(let i=0;i<m;i++) for(let j=0;j<n;j++) for(let l=0;l<k;l++) r[i][j]+=a[i][l]*b[l][j];
   return r;
 }
+function makeZeroLike(v){ if(!Array.isArray(v)) return 0; return v.map(makeZeroLike); }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 //  RUN GRAPH
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 function runGraph(){
   try{
     const {order,inE}=topo();
@@ -1041,52 +972,37 @@ function runGraph(){
       if(!s) throw new Error('No value for "'+el.getAttribute('data-var')+'"');
       vals[el.getAttribute('data-node-id')]=parseVal(s);
     });
-
-    const lines=['<span class="ok">Execution order:</span>  '+order.map(id=>G[id].name).join(' → '),''];
-
+    const lines=['<span class="ok">Execution  →  '+order.map(id=>G[id].name).join(' → ')+'</span>',''];
     order.forEach(id=>{
       const n=G[id], ins=inE[id].map(p=>vals[p]);
       let v;
       switch(n.type){
         case 'Variable': v=vals[id]; break;
         case 'Constant': v=n.value; break;
-        case 'Add':
-          if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs (has '+ins.length+')');
-          v=eAdd(ins[0],ins[1]); break;
-        case 'Mul':
-          if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs');
-          v=eMul(ins[0],ins[1]); break;
-        case 'ReLU':
-          if(ins.length<1) throw new Error('"'+n.name+'" needs 1 input');
-          v=eReLU(ins[0]); break;
-        case 'MatMul':
-          if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs');
-          v=matmul(ins[0],ins[1]); break;
+        case 'Add':    if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs'); v=eAdd(ins[0],ins[1]); break;
+        case 'Mul':    if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs'); v=eMul(ins[0],ins[1]); break;
+        case 'ReLU':   if(ins.length<1) throw new Error('"'+n.name+'" needs 1 input');  v=eReLU(ins[0]); break;
+        case 'MatMul': if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs'); v=matmul(ins[0],ins[1]); break;
         default: throw new Error('Unknown op: '+n.type);
       }
       vals[id]=v;
-
       const sh=shapeOf(v);
-      const label=n.type+'\n'+n.name+'\n['+sh+']\n= '+fmt(v,2).replace(/\n/g,' ').slice(0,30);
-      visN.update({id, label});
+      visN.update({id, label:n.type+'\n'+n.name+'\n['+sh+']\n= '+fmt(v,2).replace(/\n/g,' ').slice(0,28)});
       lines.push('<span class="inf">'+n.name+'</span>  ('+n.type+')  →  '+fmt(v,4));
     });
-
     const outs=order.filter(id=>E.every(e=>e.from!==id));
-    lines.push(''); lines.push('<span class="ok">Done.</span>  Output: '+outs.map(id=>G[id].name).join(', '));
-    outs.forEach(id=>lines.push('  '+G[id].name+' = '+fmt(vals[id],4)));
+    lines.push(''); lines.push('<span class="ok">Done.</span>  Output: '+outs.map(id=>G[id].name+' = '+fmt(vals[id],4)).join('\n        '));
     logTo('run-log',lines.join('\n'));
   } catch(e){ logTo('run-log','<span class="err">Error: '+e.message+'</span>'); }
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 //  PASS — SHAPE INFERENCE
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 function passShape(){
   try{
-    const {order,inE}=topo();
-    const sh={};
-    const lines=['<span class="ok">Shape Inference</span>',''];
+    const {order,inE}=topo(), sh={};
+    const lines=['<span class="ok">Shape Inference Pass</span>',''];
     order.forEach(id=>{
       const n=G[id], ish=inE[id].map(p=>sh[p]);
       let s;
@@ -1095,44 +1011,35 @@ function passShape(){
         case 'Constant': s=n.shape||shapeOf(n.value); break;
         case 'Add': case 'Mul':
           if(ish.length<2){s=null;break;}
-          if(!shapeEq(ish[0],ish[1])){
-            lines.push('<span class="err">  Shape mismatch @ '+n.name+': ['+ish[0]+'] vs ['+ish[1]+']</span>');
-            s=null;
-          } else s=ish[0];
-          break;
+          if(!shapeEq(ish[0],ish[1])){ lines.push('<span class="err">  ✕ shape mismatch @ '+n.name+': ['+ish[0]+'] vs ['+ish[1]+']</span>'); s=null; }
+          else s=ish[0]; break;
         case 'ReLU': s=ish[0]||null; break;
         case 'MatMul':
           if(ish.length<2||!ish[0]||!ish[1]){s=null;break;}
           if(ish[0].length<2||ish[1].length<2){s=null;break;}
-          if(ish[0][1]!==ish[1][0]){
-            lines.push('<span class="err">  Dim mismatch @ '+n.name+': ['+ish[0]+'] × ['+ish[1]+']</span>');
-            s=null;
-          } else s=[ish[0][0],ish[1][1]];
-          break;
+          if(ish[0][1]!==ish[1][0]){ lines.push('<span class="err">  ✕ dim mismatch @ '+n.name+': ['+ish[0]+'] × ['+ish[1]+']</span>'); s=null; }
+          else s=[ish[0][0],ish[1][1]]; break;
         default: s=null;
       }
       sh[id]=s; G[id].shape=s;
-      const c=COLORS[n.type]||'#888';
-      let lbl=n.type+'\n'+n.name+(s?'\n['+s.join('×')+']':'\n[?]');
-      visN.update({id,label:lbl});
+      visN.update({id, label:makeVisNode({...n,shape:s}).label});
+      flashNode(id,'#4d9cf6',600);
       const mark=s?'<span class="ok">✓</span>':'<span class="wrn">?</span>';
-      lines.push(mark+'  <span class="inf">'+n.name+'</span>  →  '+(s?'['+s+']':'unknown'));
+      lines.push(mark+'  <span class="inf">'+n.name+'</span>  ('+n.type+')  →  '+(s?'['+s+']':'unknown'));
     });
     lines.push(''); lines.push('<span class="ok">Shape inference complete.</span>');
     logTo('pass-log',lines.join('\n'));
-    switchTab('passes',document.querySelector('.tab-btn:nth-child(2)'));
-    toast('Shape inference done');
-  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); }
+    showPassTab(); toast('Shape inference done');
+  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); showPassTab(); }
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 //  PASS — CONSTANT FOLDING
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 function passFold(){
   try{
-    const {order,inE}=topo();
-    const vals={}, isC={};
-    const lines=['<span class="ok">Constant Folding</span>',''];
+    const {order,inE}=topo(), vals={}, isC={};
+    const lines=['<span class="ok">Constant Folding Pass</span>',''];
     let folded=0;
     order.forEach(id=>{
       const n=G[id], ins=inE[id].map(p=>({c:isC[p],v:vals[p]}));
@@ -1144,57 +1051,260 @@ function passFold(){
         switch(n.type){case 'Add':v=eAdd(vs[0],vs[1]);break;case 'Mul':v=eMul(vs[0],vs[1]);break;case 'ReLU':v=eReLU(vs[0]);break;case 'MatMul':v=matmul(vs[0],vs[1]);break;}
         vals[id]=v; isC[id]=true; folded++;
         G[id].type='Constant'; G[id].value=v; G[id].shape=shapeOf(v);
-        visN.update({id, label:'Constant\n'+n.name+'\n['+shapeOf(v)+']\n'+fmt(v,2).slice(0,20),
-          color:{background:'#2a2a2b',border:COLORS.Constant,highlight:{background:'#333334',border:COLORS.Constant},hover:{background:'#303031',border:COLORS.Constant}},
-        });
-        lines.push('<span class="ok">  folded</span>  <span class="inf">'+n.name+'</span>  →  '+fmt(v,3).replace(/\n/g,' ').slice(0,40));
-      } else {
-        isC[id]=false;
-        lines.push('  <span class="dim">skip</span>  <span class="inf">'+n.name+'</span>  — has runtime inputs');
-      }
+        visN.update({id, label:makeVisNode(G[id]).label,
+          color:{background:'#2a2a2b',border:COLORS.Constant,highlight:{background:'#333334',border:COLORS.Constant},hover:{background:'#303031',border:COLORS.Constant}}});
+        lines.push('<span class="ok">  folded</span>  <span class="inf">'+n.name+'</span>  →  '+fmt(v,3).replace(/\n/g,' ').slice(0,50));
+      } else { isC[id]=false; lines.push('  <span class="dim">skip</span>  '+n.name+'  — has runtime inputs'); }
     });
     lines.push(''); lines.push('<span class="ok">Folded '+folded+' node'+(folded!==1?'s':'')+'.</span>');
-    logTo('pass-log',lines.join('\n'));
-    switchTab('passes',document.querySelector('.tab-btn:nth-child(2)'));
-    toast('Constant folding: '+folded+' folded');
-  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); }
+    logTo('pass-log',lines.join('\n')); showPassTab(); toast('Constant folding: '+folded+' folded');
+  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); showPassTab(); }
 }
 
-// ─────────────────────────────────────────────
-//  PASS — DCE
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+//  PASS — ALGEBRAIC SIMPLIFICATION
+// ═══════════════════════════════════════════════════════
+function passAlgSimp(){
+  try{
+    const {order}=topo();
+    const lines=['<span class="ok">Algebraic Simplification Pass</span>',''];
+    const bypass={}; // id → id_to_redirect_to
+    let simplified=0;
+
+    // Build inEdges on the fly (respecting bypasses)
+    function getIns(id){ return E.filter(e=>e.to===id).map(e=>bypass[e.from]||e.from); }
+
+    order.forEach(id=>{
+      const n=G[id];
+      if(n.type!=='Add'&&n.type!=='Mul') return;
+      const ins=getIns(id);
+      if(ins.length<2) return;
+      const [a,b]=ins, na=G[bypass[a]||a], nb=G[bypass[b]||b];
+
+      if(n.type==='Add'){
+        if(na?.type==='Constant'&&isZeroVal(na.value)){
+          bypass[id]=b; simplified++;
+          lines.push('<span class="ok">  ✓</span>  <span class="wrn">'+n.name+'</span>  =  0 + '+nb?.name+' ← simplified to  <span class="inf">'+nb?.name+'</span>');
+        } else if(nb?.type==='Constant'&&isZeroVal(nb.value)){
+          bypass[id]=a; simplified++;
+          lines.push('<span class="ok">  ✓</span>  <span class="wrn">'+n.name+'</span>  =  '+na?.name+' + 0 ← simplified to  <span class="inf">'+na?.name+'</span>');
+        }
+      } else if(n.type==='Mul'){
+        if(na?.type==='Constant'&&isOneVal(na.value)){
+          bypass[id]=b; simplified++;
+          lines.push('<span class="ok">  ✓</span>  <span class="wrn">'+n.name+'</span>  =  1 × '+nb?.name+' ← simplified to  <span class="inf">'+nb?.name+'</span>');
+        } else if(nb?.type==='Constant'&&isOneVal(nb.value)){
+          bypass[id]=a; simplified++;
+          lines.push('<span class="ok">  ✓</span>  <span class="wrn">'+n.name+'</span>  =  '+na?.name+' × 1 ← simplified to  <span class="inf">'+na?.name+'</span>');
+        } else if(na?.type==='Constant'&&isZeroVal(na.value)){
+          G[id].type='Constant'; G[id].value=makeZeroLike(na.value); simplified++;
+          visN.update({id,label:makeVisNode(G[id]).label,color:{background:'#2a2a2b',border:COLORS.Constant,highlight:{background:'#333334',border:COLORS.Constant},hover:{background:'#303031',border:COLORS.Constant}}});
+          lines.push('<span class="ok">  ✓</span>  <span class="wrn">'+n.name+'</span>  =  0 × '+nb?.name+' ← replaced with Constant(0)');
+        } else if(nb?.type==='Constant'&&isZeroVal(nb.value)){
+          G[id].type='Constant'; G[id].value=makeZeroLike(nb.value); simplified++;
+          visN.update({id,label:makeVisNode(G[id]).label,color:{background:'#2a2a2b',border:COLORS.Constant,highlight:{background:'#333334',border:COLORS.Constant},hover:{background:'#303031',border:COLORS.Constant}}});
+          lines.push('<span class="ok">  ✓</span>  <span class="wrn">'+n.name+'</span>  =  '+na?.name+' × 0 ← replaced with Constant(0)');
+        }
+      }
+    });
+
+    // Apply bypasses: redirect edges out of bypassed nodes
+    const toRemove=new Set(Object.keys(bypass));
+    toRemove.forEach(id=>{
+      const newId=bypass[id];
+      E.forEach(e=>{ if(e.from===id){ e.from=newId; visE.update({id:e.id,from:newId}); } });
+      E=E.filter(e=>e.to!==id);
+      visE.getIds().forEach(eid=>{ const e=visE.get(eid); if(e&&e.to===id) visE.remove(eid); });
+      delete G[id]; visN.remove(id);
+    });
+
+    if(simplified===0) lines.push('  No simplifiable patterns found in current graph.\n  Tip: add a Mul node with a Constant([1,1,1]) input to see x×1→x.');
+    lines.push(''); lines.push('<span class="ok">'+simplified+' simplification'+(simplified!==1?'s':'')+' applied.</span>');
+    if(toRemove.size>0){ refreshSelects(); refreshEdgeList(); updateCounts(); refreshVarInputs(); }
+    logTo('pass-log',lines.join('\n')); showPassTab(); toast('Algebraic simplification: '+simplified+' applied');
+  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); showPassTab(); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  PASS — CSE
+// ═══════════════════════════════════════════════════════
+function passCSE(){
+  try{
+    const {order,inE}=topo();
+    const lines=['<span class="ok">Common Subexpression Elimination (CSE)</span>',''];
+    const seen={}; // fingerprint → canonical id
+    const redirect={}; // duplicate_id → canonical_id
+    let merged=0;
+
+    const resolve=id=>redirect[id]||id;
+
+    order.forEach(id=>{
+      const n=G[id];
+      if(n.type==='Variable'||n.type==='Constant') return;
+      let inputs=inE[id].map(resolve);
+      // Commutative: sort inputs
+      if(n.type==='Add'||n.type==='Mul') inputs=[...inputs].sort();
+      const key=n.type+':'+inputs.join(',');
+
+      if(seen[key]!==undefined){
+        const canon=seen[key];
+        redirect[id]=canon; merged++;
+        lines.push('<span class="ok">  ✓ merged</span>  <span class="wrn">'+n.name+'</span>  →  <span class="inf">'+G[canon].name+'</span>  (same op + same inputs)');
+        flashNode(canon,'#4ec9b0',900);
+        E.forEach(e=>{ if(e.from===id){ e.from=canon; visE.update({id:e.id,from:canon}); } });
+        E=E.filter(e=>e.to!==id);
+        visE.getIds().forEach(eid=>{ const e=visE.get(eid); if(e&&e.to===id) visE.remove(eid); });
+        delete G[id]; visN.remove(id);
+      } else {
+        seen[key]=id;
+        lines.push('  <span class="dim">keep</span>  <span class="inf">'+n.name+'</span>  key='+key);
+      }
+    });
+
+    if(merged===0) lines.push('  No duplicate subexpressions found.\n  Tip: load Graph 3 (CSE demo) to see this in action.');
+    lines.push(''); lines.push('<span class="ok">Merged '+merged+' duplicate'+(merged!==1?'s':'')+'.</span>');
+    if(merged>0){ refreshSelects(); refreshEdgeList(); updateCounts(); refreshVarInputs(); }
+    logTo('pass-log',lines.join('\n')); showPassTab(); toast('CSE: '+merged+' merged');
+  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); showPassTab(); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  PASS — DEAD CODE ELIMINATION
+// ═══════════════════════════════════════════════════════
 function passDCE(){
   try{
     const {order,inE,outE}=topo();
-    const lines=['<span class="ok">Dead Code Elimination</span>',''];
+    const lines=['<span class="ok">Dead Code Elimination (DCE)</span>',''];
     const outputs=Object.keys(G).filter(id=>outE[id].length===0);
-    if(!outputs.length){logTo('pass-log',lines.join('\n')+'\n<span class="wrn">No output nodes found.</span>');return;}
+    if(!outputs.length){ logTo('pass-log',lines.join('\n')+'\n<span class="wrn">No output nodes found.</span>'); showPassTab(); return; }
     const live=new Set(outputs), q=[...outputs];
-    while(q.length){const cur=q.shift();inE[cur].forEach(p=>{if(!live.has(p)){live.add(p);q.push(p);}});}
+    while(q.length){ const c=q.shift(); inE[c].forEach(p=>{ if(!live.has(p)){live.add(p);q.push(p);} }); }
     const dead=Object.keys(G).filter(id=>!live.has(id));
     lines.push('Live: '+live.size+'   Dead: '+dead.length,'');
     if(!dead.length){
-      lines.push('<span class="ok">No dead nodes — graph is minimal.</span>');
+      lines.push('<span class="ok">Graph is already minimal — no dead nodes.</span>');
     } else {
       dead.forEach(id=>{
-        lines.push('<span class="err">  removed  </span><span class="inf">'+G[id].name+'</span>  ('+G[id].type+')');
+        lines.push('<span class="err">  ✕ removed</span>  <span class="inf">'+G[id].name+'</span>  ('+G[id].type+')');
         E=E.filter(e=>e.from!==id&&e.to!==id);
         visN.remove(id);
         visE.getIds().forEach(eid=>{const e=visE.get(eid);if(e.from===id||e.to===id)visE.remove(eid);});
         delete G[id];
       });
-      lines.push(''); lines.push('<span class="ok">Removed '+dead.length+' node'+(dead.length!==1?'s':'')+'.</span>');
+      lines.push(''); lines.push('<span class="ok">Removed '+dead.length+' dead node'+(dead.length!==1?'s':'')+'.</span>');
       refreshSelects(); refreshEdgeList(); updateCounts(); refreshVarInputs();
     }
-    logTo('pass-log',lines.join('\n'));
-    switchTab('passes',document.querySelector('.tab-btn:nth-child(2)'));
-    toast('DCE: '+dead.length+' removed');
-  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); }
+    logTo('pass-log',lines.join('\n')); showPassTab(); toast('DCE: '+dead.length+' removed');
+  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); showPassTab(); }
 }
 
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
+//  PASS — W8A16 QUANTIZATION
+// ═══════════════════════════════════════════════════════
+function passQuantize(){
+  const lines=['<span class="ok">W8A16 Quantization Pass</span>',
+    '<span class="dim">Weights (Constant) → INT8   |   Activations (Variable) → FP16 (unchanged)</span>',''];
+  let quantized=0;
+  Object.values(G).forEach(n=>{
+    if(n.type!=='Constant'||n.value==null) return;
+    const flat=flatArr(n.value);
+    const absMax=Math.max(...flat.map(Math.abs));
+    if(absMax===0){ lines.push('  <span class="dim">'+n.name+'</span>  all-zero, skip'); return; }
+    const scale=absMax/127;
+    const int8=flat.map(v=>Math.max(-127,Math.min(127,Math.round(v/scale))));
+    const dequant=reshapeArr(int8.map(q=>q*scale), n.shape);
+    G[n.id].quantized={scale, int8};
+    G[n.id].value=dequant;
+    visN.update(makeVisNode(G[n.id]));
+    flashNode(n.id,'#c586c0',800);
+    const err=(flatArr(dequant).reduce((s,v,i)=>s+Math.abs(v-flat[i]),0)/flat.length);
+    lines.push('<span class="ok">  ✓ quantized</span>  <span class="inf">'+n.name+'</span>');
+    lines.push('    shape=['+n.shape+']  absMax='+absMax.toFixed(4)+'  scale='+scale.toFixed(6));
+    lines.push('    INT8 sample: ['+int8.slice(0,5).join(', ')+(int8.length>5?'…':'')+']');
+    lines.push('    avg dequant error: '+err.toFixed(6));
+    quantized++;
+  });
+  if(quantized===0) lines.push('  No Constant nodes to quantize.\n  Load Graph 2 (linear layer) which has weight constants W and b.');
+  lines.push(''); lines.push('<span class="ok">'+quantized+' weight tensor'+(quantized!==1?'s':'')+' quantized to INT8.</span>');
+  lines.push('<span class="dim">Tip: now run Code Generation to see the W8A16 output code.</span>');
+  logTo('pass-log',lines.join('\n')); showPassTab(); toast('Quantization: '+quantized+' weights quantized');
+}
+
+// ═══════════════════════════════════════════════════════
+//  PASS — CODE GENERATION
+// ═══════════════════════════════════════════════════════
+function passCodeGen(){
+  try{
+    const {order,inE}=topo();
+    const logLines=['<span class="ok">Code Generation Pass</span>','<span class="dim">Traversing graph in topological order…</span>',''];
+    const code=[];
+
+    code.push('<span class="cm">// AI Compiler Explorer — Generated Pseudocode</span>');
+    code.push('<span class="cm">// Execution order: '+order.map(id=>G[id].name).join(' → ')+'</span>');
+    code.push('');
+
+    const hasQuant=Object.values(G).some(n=>n.quantized);
+    if(hasQuant){
+      code.push('<span class="cm">// W8A16 mode: weights stored as INT8, dequantized before compute</span>');
+      code.push('');
+    }
+
+    order.forEach(id=>{
+      const n=G[id], ins=inE[id].map(p=>G[p]?.name||'?');
+      const sh=n.shape?'['+n.shape.join('×')+']':'[?]';
+      switch(n.type){
+        case 'Variable':
+          code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> input(<span class="inf">"'+n.name+'"</span>);');
+          logLines.push('  <span class="dim">'+n.name+'</span>  Variable → fp16 input tensor');
+          break;
+        case 'Constant':
+          if(n.quantized){
+            const int8preview=n.quantized.int8.slice(0,4).join(','+(n.quantized.int8.length>4?'…':''));
+            code.push('<span class="kw">int8_t</span> <span class="nm">'+n.name+'_int8</span>'+sh+' <span class="op">=</span> {'+int8preview+'};  <span class="cm">// stored INT8</span>');
+            code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> dequantize(<span class="nm">'+n.name+'_int8</span>, scale<span class="op">=</span><span class="wrn">'+n.quantized.scale.toFixed(6)+'</span>);');
+            logLines.push('  <span class="inf">'+n.name+'</span>  INT8 weight → dequantize → fp16');
+          } else {
+            const preview=flatArr(n.value).slice(0,3).map(x=>x.toFixed(3)).join(', ')+(flatArr(n.value).length>3?', …':'');
+            code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp32</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> {'+preview+'};  <span class="cm">// constant</span>');
+            logLines.push('  <span class="inf">'+n.name+'</span>  fp32 constant');
+          }
+          break;
+        case 'Add':
+          code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> elem_add(<span class="nm">'+ins.join('</span>, <span class="nm">')+'</span>);');
+          logLines.push('  <span class="inf">'+n.name+'</span>  elem_add('+ins.join(', ')+')');
+          break;
+        case 'Mul':
+          code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> elem_mul(<span class="nm">'+ins.join('</span>, <span class="nm">')+'</span>);');
+          logLines.push('  <span class="inf">'+n.name+'</span>  elem_mul('+ins.join(', ')+')');
+          break;
+        case 'ReLU':
+          code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> relu(<span class="nm">'+ins[0]+'</span>);');
+          logLines.push('  <span class="inf">'+n.name+'</span>  relu('+ins[0]+')');
+          break;
+        case 'MatMul':
+          code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> matmul(<span class="nm">'+ins.join('</span>, <span class="nm">')+'</span>);');
+          logLines.push('  <span class="inf">'+n.name+'</span>  matmul('+ins.join(', ')+')');
+          break;
+        default:
+          code.push('<span class="ty">auto</span> <span class="nm">'+n.name+'</span> <span class="op">=</span> '+n.type.toLowerCase()+'('+ins.join(', ')+');');
+      }
+    });
+
+    code.push('');
+    const outs=order.filter(id=>E.every(e=>e.from!==id));
+    code.push('<span class="kw">return</span> { <span class="nm">'+outs.map(id=>G[id].name).join('</span>, <span class="nm">')+'</span> };');
+
+    logLines.push(''); logLines.push('<span class="ok">Code generation complete. '+order.length+' nodes emitted.</span>');
+    logTo('pass-log',logLines.join('\n'));
+    document.getElementById('codegen-out').innerHTML=code.join('\n');
+    document.getElementById('codegen-wrap').style.display='block';
+    showPassTab(); toast('Code generation done — '+order.length+' instructions');
+  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); showPassTab(); }
+}
+
+// ═══════════════════════════════════════════════════════
 //  UI HELPERS
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════
 function refreshSelects(){
   const ids=Object.keys(G);
   const opts=ids.map(id=>`<option value="${id}">${G[id].name} (${G[id].type})</option>`).join('');
@@ -1213,8 +1323,7 @@ function refreshVarInputs(){
   document.getElementById('var-inputs').innerHTML=vars.map(n=>
     `<div class="var-row">
       <span class="var-label">${n.name}</span>
-      <input type="text" data-var="${n.name}" data-node-id="${n.id}"
-             placeholder="${n.shape?.join('×')||'value'}">
+      <input type="text" data-var="${n.name}" data-node-id="${n.id}" placeholder="${n.shape?.join('×')||'value'}">
     </div>`
   ).join('');
 }
@@ -1229,13 +1338,14 @@ function showPopup(id){
   const c=COLORS[n.type]||'#888';
   document.getElementById('popup-name').style.color=c;
   document.getElementById('popup-name').textContent=n.name;
-  document.getElementById('popup-rows').innerHTML=
-    `<div class="popup-row"><span class="popup-key">Type</span><span class="popup-val">${n.type}</span></div>`+
-    (n.shape?.length?`<div class="popup-row"><span class="popup-key">Shape</span><span class="popup-val">[${n.shape.join('×')}]</span></div>`:'')+
-    (n.value!=null?`<div class="popup-row"><span class="popup-key">Value</span><span class="popup-val" style="font-size:10px;max-width:110px;word-break:break-all">${fmt(n.value,2)}</span></div>`:'')+
-    `<div class="popup-row"><span class="popup-key">ID</span><span class="popup-val" style="color:var(--text-dim)">${id}</span></div>`;
+  let rows=`<div class="popup-row"><span class="popup-key">Type</span><span class="popup-val">${n.type}</span></div>`;
+  if(n.shape?.length) rows+=`<div class="popup-row"><span class="popup-key">Shape</span><span class="popup-val">[${n.shape.join('×')}]</span></div>`;
+  if(n.value!=null) rows+=`<div class="popup-row"><span class="popup-key">Value</span><span class="popup-val">${fmtShort(n.value)}</span></div>`;
+  if(n.quantized) rows+=`<div class="popup-row"><span class="popup-key">Scale</span><span class="popup-val">${n.quantized.scale.toFixed(6)}</span></div>`;
+  rows+=`<div class="popup-row"><span class="popup-key">ID</span><span class="popup-val" style="color:var(--text-dim)">${id}</span></div>`;
+  document.getElementById('popup-rows').innerHTML=rows;
   document.getElementById('node-popup').style.display='block';
-  setStatus('Selected: '+n.name+'  ('+n.type+')');
+  setStatus('Selected: '+n.name+' ('+n.type+')');
 }
 
 function switchTab(name,btn){
@@ -1245,20 +1355,24 @@ function switchTab(name,btn){
   document.getElementById('tab-'+name).classList.add('active');
 }
 
-function logTo(el,html){
-  const e=document.getElementById(el);
-  e.innerHTML=html;
-  e.scrollTop=e.scrollHeight;
+function showPassTab(){
+  switchTab('passes', document.querySelector('.tab-btn:nth-child(2)'));
 }
 
+function toggleAcc(hdr){
+  const acc=hdr.parentElement;
+  // Close all others
+  document.querySelectorAll('.acc.open').forEach(a=>{ if(a!==acc){ a.classList.remove('open'); } });
+  acc.classList.toggle('open');
+}
+
+function logTo(el,html){ const e=document.getElementById(el); e.innerHTML=html; e.scrollTop=e.scrollHeight; }
 function setStatus(msg){ document.getElementById('status-msg').textContent=msg; }
 
 function toast(msg){
   document.querySelectorAll('.toast').forEach(t=>t.remove());
-  const d=document.createElement('div');
-  d.className='toast'; d.textContent=msg;
-  document.body.appendChild(d);
-  setTimeout(()=>d.remove(),2600);
+  const d=document.createElement('div'); d.className='toast'; d.textContent=msg;
+  document.body.appendChild(d); setTimeout(()=>d.remove(),2600);
 }
 
 window.addEventListener('load', init);
