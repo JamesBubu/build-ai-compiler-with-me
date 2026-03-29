@@ -34,6 +34,7 @@
   --transform: #fb923c;
   --hardware:  #c084fc;
   --backend:   #34d399;
+  --fused:     #f59e0b;
 
   --f-ui:   'Barlow', system-ui, sans-serif;
   --f-mono: 'JetBrains Mono', monospace;
@@ -441,6 +442,13 @@ select option { background: #111827; }
         <div class="preset-desc">CSE demo: duplicate subexpr</div>
       </div>
     </button>
+    <button class="preset-item" id="p4" onclick="loadPreset(4)">
+      <span class="preset-num">4</span>
+      <div>
+        <div class="preset-formula">2-Layer MLP</div>
+        <div class="preset-desc">Op Fusion demo: fuse MatMul+Add+ReLU</div>
+      </div>
+    </button>
   </div>
 
   <div class="sec">
@@ -454,6 +462,7 @@ select option { background: #111827; }
         <option value="Mul">Mul</option>
         <option value="ReLU">ReLU</option>
         <option value="MatMul">MatMul</option>
+        <option value="Conv">Conv</option>
       </select>
     </div>
     <div class="field">
@@ -493,6 +502,7 @@ select option { background: #111827; }
       <div class="leg"><div class="leg-dot" style="background:var(--c-add)"></div>Add / Mul</div>
       <div class="leg"><div class="leg-dot" style="background:var(--c-relu)"></div>ReLU</div>
       <div class="leg"><div class="leg-dot" style="background:var(--c-matmul)"></div>MatMul</div>
+      <div class="leg"><div class="leg-dot" style="background:var(--fused)"></div>FusedOp</div>
     </div>
   </div>
 
@@ -579,6 +589,13 @@ select option { background: #111827; }
           <div class="pass-desc">Merge duplicate subexpressions</div>
         </div>
         <div class="pass-dot" style="background:var(--transform)"></div>
+      </button>
+      <button class="pass-btn" onclick="passOpFusion()">
+        <div class="pass-btn-inner">
+          <div class="pass-name">Operator Fusion</div>
+          <div class="pass-desc">MatMul+Add+ReLU → 1 fused kernel</div>
+        </div>
+        <div class="pass-dot" style="background:var(--fused)"></div>
       </button>
       <button class="pass-btn" onclick="passDCE()">
         <div class="pass-btn-inner">
@@ -773,6 +790,60 @@ float  v2  = A * v1;          // FP32 multiply</div>
       </div>
     </div>
 
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Operator Fusion</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Transformation Pass · Kernel Efficiency</div>
+        <div class="learn-p">Instead of running three separate GPU kernels (MatMul, Add, ReLU), fusion merges them into <b style="color:var(--text)">one single kernel</b>. The intermediate results never leave the hardware registers — no DRAM round-trips between ops.</div>
+        <div class="learn-code">// Before fusion: 3 kernel launches, 3 DRAM writes
+v0 = matmul(x, W)     // kernel 1 → write to DRAM
+v1 = add(v0, bias)    // kernel 2 → read + write DRAM
+v2 = relu(v1)         // kernel 3 → read + write DRAM
+
+// After fusion: 1 kernel launch, stays in registers
+v2 = fused_linear_relu(x, W, bias)  // kernel 1 only</div>
+        <div class="learn-p"><b style="color:var(--text)">Why it matters:</b> modern NPUs and GPUs are memory-bandwidth bound, not compute-bound. Fusion eliminates intermediate DRAM traffic, which is the bottleneck for small layers. TFLite automatically fuses Conv2D + BatchNorm + ReLU into a single op at Stage 1 compile time.</div>
+        <div class="learn-p"><b style="color:var(--text)">Try it:</b> load Graph 4 (2-Layer MLP) then run Operator Fusion. Watch 9 nodes collapse to 4 fused kernels. Then run Code Generation to see the emitted fused pseudocode.</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Two-Stage AOT Compilation</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-tag">Production Pipeline · ONNX → TFLite → HW Binary</div>
+        <div class="learn-p">Deploying to edge hardware is <b style="color:var(--text)">not a format conversion</b> — it's two-stage Ahead-of-Time (AOT) compilation. Analogous to: C source → LLVM IR → Machine Code.</div>
+        <div style="display:flex;align-items:center;gap:5px;margin:9px 0 11px;flex-wrap:wrap">
+          <div style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);border-radius:4px;padding:5px 8px;font-size:10px;color:#60a5fa;text-align:center;flex-shrink:0"><div style="font-size:8.5px;opacity:0.6;margin-bottom:1px">INPUT</div>PyTorch<br>.onnx</div>
+          <div style="color:var(--text-dim);font-size:12px">→</div>
+          <div style="background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.3);border-radius:4px;padding:5px 8px;font-size:10px;color:#fb923c;text-align:center;flex-shrink:0"><div style="font-size:8.5px;opacity:0.6;margin-bottom:1px">STAGE 1</div>Target-Indep<br>Compiler</div>
+          <div style="color:var(--text-dim);font-size:12px">→</div>
+          <div style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);border-radius:4px;padding:5px 8px;font-size:10px;color:#60a5fa;text-align:center;flex-shrink:0"><div style="font-size:8.5px;opacity:0.6;margin-bottom:1px">PORTABLE IR</div>TFLite<br>.tflite</div>
+          <div style="color:var(--text-dim);font-size:12px">→</div>
+          <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);border-radius:4px;padding:5px 8px;font-size:10px;color:#34d399;text-align:center;flex-shrink:0"><div style="font-size:8.5px;opacity:0.6;margin-bottom:1px">STAGE 2</div>Target-Dep<br>Compiler</div>
+          <div style="color:var(--text-dim);font-size:12px">→</div>
+          <div style="background:rgba(52,211,153,0.08);border:1px dashed rgba(52,211,153,0.25);border-radius:4px;padding:5px 8px;font-size:10px;color:#34d399;text-align:center;flex-shrink:0"><div style="font-size:8.5px;opacity:0.6;margin-bottom:1px">OUTPUT</div>.so /<br>Binary</div>
+        </div>
+        <div class="learn-p"><b style="color:var(--text)">Stage 1 — Target-Independent:</b> translates between dialects, fuses operators, runs PTQ quantization, then serializes to a portable binary format. Runs on your laptop. Output works across all chips that understand TFLite.</div>
+        <div class="learn-code">Stage 1 passes (portable — runs on laptop):
+  ├─ Dialect translation  (ONNX Gemm → TFLite FullyConnected)
+  ├─ Operator fusion      (Conv2D + BN + ReLU → FusedConv2D)
+  ├─ PTQ quantization     (FP32 weights → INT8 + Q/DQ nodes)
+  └─ Serialize            (graph → .tflite FlatBuffer bytes)</div>
+        <div class="learn-p"><b style="color:var(--text)">Stage 2 — Target-Dependent:</b> knows the chip: SRAM capacity, vector width, number of DSP cores. Computes static tensor addresses, tiles loops to fit hardware buffers, emits chip microcode. Provided by the chip vendor (Edge TPU Compiler, Qualcomm AI SDK, etc.).</div>
+        <div class="learn-code">Stage 2 passes (chip-specific — runs on vendor SDK):
+  ├─ Static memory planning  (tensor byte offsets baked in)
+  ├─ Loop tiling             (tile size matches SRAM capacity)
+  └─ Microcode emission      (ARM NEON / NPU descriptors / PTX)</div>
+        <div class="learn-p">Every pass in this explorer corresponds to Stage 1. Code Generation here is the conceptual equivalent of Stage 2 emission. In production: TVM's TIR lowers to LLVM, MLIR linalg lowers to target dialects, XLA HLO lowers to cuBLAS/cuDNN kernels.</div>
+      </div>
+    </div>
+
   </div><!-- /tab-learn -->
 </div><!-- /sidebar-right -->
 </div><!-- /workspace -->
@@ -795,6 +866,7 @@ let visN, visE, net;
 const COLORS = {
   Variable: '#34d399', Constant: '#60a5fa',
   Add:'#fb923c', Mul:'#fbbf24', ReLU:'#c084fc', MatMul:'#22d3ee',
+  Conv:'#06b6d4', FusedOp:'#f59e0b',
 };
 
 // ═══════════════════════════════════════════════════════
@@ -822,7 +894,7 @@ function makeVisNode(n) {
     borderWidthSelected: 2.5,
     widthConstraint: { minimum: 100, maximum: 136 },
     margin: { top:9, bottom:9, left:10, right:10 },
-    borderDashes: n.quantized ? [4,2] : false,
+    borderDashes: n.quantized ? [4,2] : (n.type === 'FusedOp' ? [5,3] : false),
     shadow: { enabled: true, color: c + '30', size: 8, x: 0, y: 2 },
   };
 }
@@ -885,7 +957,7 @@ function clearGraph() {
   document.getElementById('var-inputs').innerHTML='';
   document.getElementById('codegen-wrap').style.display='none';
   refreshSelects(); refreshEdgeList(); updateCounts();
-  [1,2,3].forEach(i=>document.getElementById('p'+i).classList.remove('active'));
+  [1,2,3,4].forEach(i=>document.getElementById('p'+i).classList.remove('active'));
   logTo('run-log','// Graph cleared.');
   logTo('pass-log','// Select a pass to run.');
   setStatus('Ready');
@@ -978,6 +1050,26 @@ function loadPreset(n) {
     logTo('run-log','<span class="ok">Graph 3: CSE Demo</span>\n<span class="dim">add1 and add2 both compute Add(a, b) with the same inputs.\nRun Passes → CSE to merge them into one node.</span>');
     setDefaults({a:'1,2,3', b:'4,5,6'});
     setStatus('Graph 3  ·  CSE Demo — duplicate subexpression');
+  } else if(n===4){
+    // Op Fusion demo: 2-Layer MLP (MatMul+Add+ReLU) × 2
+    const x=_addNode('Variable','x',[1,4],null);
+    const W1=_addNode('Constant','W1',[4,4],[[0.5,0.2,0.8,0.1],[0.3,0.7,0.2,0.4],[0.1,0.6,0.9,0.3],[0.4,0.3,0.5,0.6]]);
+    const b1=_addNode('Constant','b1',[4],[0.1,-0.2,0.1,0.3]);
+    const mm1=_addNode('MatMul','mm1',null,null);
+    const add1=_addNode('Add','add_b1',null,null);
+    const r1=_addNode('ReLU','relu1',null,null);
+    const W2=_addNode('Constant','W2',[4,2],[[0.5,0.2],[0.3,0.7],[0.1,0.6],[0.4,0.3]]);
+    const b2=_addNode('Constant','b2',[2],[0.1,-0.1]);
+    const mm2=_addNode('MatMul','mm2',null,null);
+    const add2=_addNode('Add','add_b2',null,null);
+    _addEdge(x,mm1);  _addEdge(W1,mm1);
+    _addEdge(mm1,add1); _addEdge(b1,add1);
+    _addEdge(add1,r1);
+    _addEdge(r1,mm2); _addEdge(W2,mm2);
+    _addEdge(mm2,add2); _addEdge(b2,add2);
+    logTo('run-log','<span class="ok">Graph 4: 2-Layer MLP — Op Fusion Demo</span>\n<span class="dim">Layer 1: x→MatMul(W1)→Add(b1)→ReLU\nLayer 2: hidden→MatMul(W2)→Add(b2)→output\n\nRun Shape Inference, then Operator Fusion.\nWatch 10 nodes collapse to 4 fused kernels.\nFinish with Code Generation to see the output.</span>');
+    setDefaults({x:'[[1,2,3,4]]'});
+    setStatus('Graph 4  ·  2-Layer MLP — Op Fusion Demo');
   }
   refreshVarInputs();
 }
@@ -1069,6 +1161,14 @@ function runGraph(){
         case 'Mul':    if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs'); v=eMul(ins[0],ins[1]); break;
         case 'ReLU':   if(ins.length<1) throw new Error('"'+n.name+'" needs 1 input');  v=eReLU(ins[0]); break;
         case 'MatMul': if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs'); v=matmul(ins[0],ins[1]); break;
+        case 'Conv':   if(ins.length<2) throw new Error('"'+n.name+'" needs 2 inputs'); v=matmul(ins[0],ins[1]); break;
+        case 'FusedOp': {
+          if(ins.length<2) throw new Error('"'+n.name+'" needs 2+ inputs');
+          let r=matmul(ins[0],ins[1]);
+          if(ins.length>=3) r=eAdd(r,ins[2]);
+          if(n.fusionHasRelu) r=eReLU(r);
+          v=r; break;
+        }
         default: throw new Error('Unknown op: '+n.type);
       }
       vals[id]=v;
@@ -1317,6 +1417,91 @@ function passQuantize(){
 }
 
 // ═══════════════════════════════════════════════════════
+//  PASS — OPERATOR FUSION
+// ═══════════════════════════════════════════════════════
+function passOpFusion(){
+  try{
+    const {order, inE, outE} = topo();
+    const lines = ['<span class="ok">Operator Fusion Pass</span>',
+      '<span class="dim">Pattern: MatMul → Add(bias) → [ReLU]  ⟹  FusedOp (1 kernel)</span>',''];
+
+    // Find all fusable patterns from initial topo snapshot
+    const patterns = [];
+    order.forEach(mmId => {
+      if(!G[mmId]||(G[mmId].type!=='MatMul'&&G[mmId].type!=='Conv')) return;
+      const mmOut = outE[mmId];
+      if(mmOut.length !== 1) return;
+      const addId = mmOut[0];
+      if(!G[addId] || G[addId].type !== 'Add') return;
+      const addInputs = inE[addId];
+      const biasId = addInputs.find(id => id !== mmId && G[id]?.type === 'Constant');
+      if(!biasId) return;
+      const addOut = outE[addId];
+      let reluId = null;
+      if(addOut.length === 1 && G[addOut[0]]?.type === 'ReLU') reluId = addOut[0];
+      patterns.push({mmId, addId, reluId, biasId});
+    });
+
+    if(patterns.length === 0){
+      lines.push('  No fusable [MatMul/Conv → Add(bias) → ReLU?] patterns found.');
+      lines.push('  <span class="dim">Tip: load Graph 2 or Graph 4 to see fusion in action.</span>');
+      lines.push(''); lines.push('<span class="ok">0 patterns fused.</span>');
+      logTo('pass-log', lines.join('\n')); showPassTab();
+      toast('Op Fusion: no patterns found'); return;
+    }
+
+    let fusedCount = 0;
+    patterns.forEach(({mmId, addId, reluId, biasId}) => {
+      if(!G[mmId]) return; // skip if already removed
+      const hasRelu = reluId && G[reluId];
+      const fusionOutId = hasRelu ? reluId : addId;
+      const opType = (G[mmId]?.type === 'Conv') ? 'Conv' : 'MatMul';
+      const patLabel = opType + ' + Add' + (hasRelu ? ' + ReLU' : '');
+      const mmInputs = inE[mmId]; // [input_tensor, weight_tensor]
+
+      // Create FusedOp node
+      const fusedId = 'n' + uid++;
+      const fusedName = 'fused' + fusedCount + (hasRelu ? '_relu' : '');
+      G[fusedId] = {id:fusedId, type:'FusedOp', name:fusedName,
+        shape: G[fusionOutId]?.shape || null, fusionHasRelu: !!hasRelu};
+      visN.add(makeVisNode(G[fusedId]));
+
+      // Connect matmul inputs → FusedOp
+      mmInputs.forEach(inId => {
+        const eid='e'+uid++; E.push({id:eid,from:inId,to:fusedId}); visE.add({id:eid,from:inId,to:fusedId});
+      });
+      // Connect bias → FusedOp
+      const beid='e'+uid++; E.push({id:beid,from:biasId,to:fusedId}); visE.add({id:beid,from:biasId,to:fusedId});
+
+      // Redirect fusionOut's downstream consumers to FusedOp
+      E.forEach(e=>{ if(e.from===fusionOutId){ e.from=fusedId; visE.update({id:e.id,from:fusedId}); } });
+
+      // Remove fused-away nodes
+      const toRemove = [mmId, addId];
+      if(hasRelu) toRemove.push(reluId);
+      toRemove.forEach(rmId=>{
+        E=E.filter(e=>e.from!==rmId&&e.to!==rmId);
+        visE.getIds().forEach(eid=>{ const e=visE.get(eid); if(e&&(e.from===rmId||e.to===rmId)) visE.remove(eid); });
+        delete G[rmId]; visN.remove(rmId);
+      });
+
+      const saved = toRemove.length;
+      lines.push('<span class="ok">  ✓ fused</span>  <span class="wrn">'+patLabel+'</span>  →  <span class="inf">'+fusedName+'</span>');
+      lines.push('    <span class="dim">'+saved+' nodes → 1  ·  kernel launches: '+saved+' → 1  ·  DRAM round-trips eliminated</span>');
+      fusedCount++;
+    });
+
+    lines.push(''); lines.push('<span class="ok">'+fusedCount+' fusion pattern'+(fusedCount!==1?'s':'')+' applied.</span>');
+    if(fusedCount > 0){
+      lines.push('<span class="dim">Tip: run Code Generation to see the fused pseudocode.</span>');
+      refreshSelects(); refreshEdgeList(); updateCounts(); refreshVarInputs();
+    }
+    logTo('pass-log', lines.join('\n')); showPassTab();
+    toast('Op Fusion: '+fusedCount+' pattern'+(fusedCount!==1?'s':'')+' fused');
+  } catch(e){ logTo('pass-log','<span class="err">Error: '+e.message+'</span>'); showPassTab(); }
+}
+
+// ═══════════════════════════════════════════════════════
 //  PASS — CODE GENERATION
 // ═══════════════════════════════════════════════════════
 function passCodeGen(){
@@ -1371,6 +1556,17 @@ function passCodeGen(){
           code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> matmul(<span class="nm">'+ins.join('</span>, <span class="nm">')+'</span>);');
           logLines.push('  <span class="inf">'+n.name+'</span>  matmul('+ins.join(', ')+')');
           break;
+        case 'Conv':
+          code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> conv2d(<span class="nm">'+ins.join('</span>, <span class="nm">')+'</span>);');
+          logLines.push('  <span class="inf">'+n.name+'</span>  conv2d('+ins.join(', ')+')');
+          break;
+        case 'FusedOp': {
+          const fusedOp=n.fusionHasRelu?'fused_linear_relu':'fused_linear';
+          code.push('<span class="cm">// Fused kernel: '+n.name+' — MatMul + bias'+(n.fusionHasRelu?'+ReLU':'')+' in 1 launch</span>');
+          code.push('<span class="kw">tensor</span><span class="op">&lt;</span><span class="ty">fp16</span><span class="op">&gt;</span> <span class="nm">'+n.name+'</span>'+sh+' <span class="op">=</span> '+fusedOp+'(<span class="nm">'+ins.join('</span>, <span class="nm">')+'</span>);  <span class="cm">// ← 1 kernel launch</span>');
+          logLines.push('  <span class="inf">'+n.name+'</span>  FusedOp → 1 kernel (was 2–3)');
+          break;
+        }
         default:
           code.push('<span class="ty">auto</span> <span class="nm">'+n.name+'</span> <span class="op">=</span> '+n.type.toLowerCase()+'('+ins.join(', ')+');');
       }
