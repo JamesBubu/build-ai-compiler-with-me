@@ -779,14 +779,62 @@ float  v2  = A * v1;          // FP32 multiply</div>
       </div>
       <div class="acc-body">
         <div class="learn-p">Every pass you've used in this explorer exists in production compilers — just at industrial scale with hardware-specific backends:</div>
-        <div class="learn-tag">TVM</div>
-        <div class="learn-p">Graph-level IR (Relay) → operator-level IR (TIR) → CUDA/Metal/Hexagon code. AutoTVM and AutoScheduler search for optimal loop tiling and unrolling.</div>
+        <div class="learn-tag">TVM / MLC</div>
+        <div class="learn-p">Graph-level IR (Relay/Relax) → operator-level IR (TIR) → CUDA/Metal/Hexagon code. AutoTVM and AutoScheduler search for optimal loop tiling. <b style="color:var(--text)">IRModule</b> is the unified container — each model becomes one IRModule and every optimization is an IRModule → IRModule pass.</div>
         <div class="learn-tag">MLIR</div>
-        <div class="learn-p">Multi-level dialects (HLO → Linalg → LLVM IR). Each dialect transformation is a pass. Used in TensorFlow, IREE, and many TPU stacks.</div>
+        <div class="learn-p">Multi-level dialects (HLO → Linalg → LLVM IR). Each dialect transformation is a pass. Used in TensorFlow, IREE, PyTorch 2.0, and every TPU stack. The key idea: you define a new dialect (e.g., <code>tpu.matmul</code>) and a lowering pass that converts generic ops into it.</div>
         <div class="learn-tag">torch.compile</div>
-        <div class="learn-p">TorchDynamo captures the computation graph via Python bytecode tracing. Inductor applies fusion, quantization, and tiling, then emits Triton or C++ kernels.</div>
-        <div class="learn-tag">XLA</div>
-        <div class="learn-p">Google's compiler for TPUs (and GPUs). HLO (High-Level Optimizer) IR with aggressive fusion. Used under JAX and TensorFlow.</div>
+        <div class="learn-p">TorchDynamo captures the computation graph via Python bytecode tracing. Inductor applies fusion, quantization, and tiling, then emits Triton or C++ kernels. The graph you build in this explorer is exactly what Dynamo captures.</div>
+        <div class="learn-tag">XLA (OpenXLA)</div>
+        <div class="learn-p">Google's compiler for TPUs and GPUs. HLO (High-Level Optimizer) IR with aggressive <b style="color:var(--text)">operation fusion</b> — 3 separate kernel launches become 1 fused kernel, results streaming in GPU registers. Used under JAX and TensorFlow.</div>
+      </div>
+    </div>
+
+    <div class="acc">
+      <div class="acc-hdr" onclick="toggleAcc(this)">
+        <span class="acc-title">Go Deeper — Curated Resources</span>
+        <span class="acc-icon">+</span>
+      </div>
+      <div class="acc-body">
+        <div class="learn-p">The best resources for taking these concepts to production depth:</div>
+
+        <div class="learn-tag">Interactive Tools</div>
+        <div style="display:grid;gap:6px;margin-bottom:9px">
+          <div style="background:rgba(25,33,48,0.7);border:1px solid var(--border);border-radius:4px;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">Netron — Model Graph Visualizer</div>
+            <div style="font-size:10px;color:var(--text-dim);line-height:1.6">Drop any .onnx, .tflite, or .pt model → see its full operator graph in the browser. The visual equivalent of this explorer for real production models. <span style="color:rgba(245,158,11,0.8)">netron.app</span></div>
+          </div>
+          <div style="background:rgba(25,33,48,0.7);border:1px solid var(--border);border-radius:4px;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">Compiler Explorer (Godbolt) — For Traditional Compilers</div>
+            <div style="font-size:10px;color:var(--text-dim);line-height:1.6">Shows LLVM IR before and after each optimization pass, with color-coded mapping from source to IR nodes. The direct inspiration for what this explorer does for AI graphs. <span style="color:rgba(245,158,11,0.8)">godbolt.org</span></div>
+          </div>
+          <div style="background:rgba(25,33,48,0.7);border:1px solid var(--border);border-radius:4px;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">CNN Explainer — Layer-by-Layer Animation</div>
+            <div style="font-size:10px;color:var(--text-dim);line-height:1.6">Runs a real TinyVGG model in the browser, animating each Conv, ReLU, and Pooling layer. Best visual for understanding what the graph nodes actually compute. <span style="color:rgba(245,158,11,0.8)">poloclub.github.io/cnn-explainer</span></div>
+          </div>
+        </div>
+
+        <div class="learn-tag">Courses &amp; Tutorials</div>
+        <div style="display:grid;gap:6px;margin-bottom:9px">
+          <div style="background:rgba(25,33,48,0.7);border:1px solid var(--border);border-radius:4px;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">MLC — Machine Learning Compilation (Tianqi Chen, CMU)</div>
+            <div style="font-size:10px;color:var(--text-dim);line-height:1.6">Free course by the creator of TVM and XGBoost. Covers IRModule, Relax passes, and full pipeline from PyTorch → hardware deployment. Each chapter has a runnable Jupyter Notebook. <span style="color:rgba(245,158,11,0.8)">mlc.ai/courses.html</span></div>
+          </div>
+          <div style="background:rgba(25,33,48,0.7);border:1px solid var(--border);border-radius:4px;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">MLIR For Beginners (j2kun, 13 lessons)</div>
+            <div style="font-size:10px;color:var(--text-dim);line-height:1.6">Progressive hands-on MLIR tutorial: custom dialects, passes, constant folding, canonicalization, LLVM backend. Best structured entry point into the MLIR ecosystem. <span style="color:rgba(245,158,11,0.8)">github.com/j2kun/mlir-tutorial</span></div>
+          </div>
+          <div style="background:rgba(25,33,48,0.7);border:1px solid var(--border);border-radius:4px;padding:8px 10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">Apache TVM Official Tutorials</div>
+            <div style="font-size:10px;color:var(--text-dim);line-height:1.6">Quick Start → IRModule → ResNet-18 optimization → LLM optimization. Best official path to learn TVM's Relax API. <span style="color:rgba(245,158,11,0.8)">tvm.apache.org/docs</span></div>
+          </div>
+        </div>
+
+        <div class="learn-tag">Academic Foundation</div>
+        <div style="background:rgba(25,33,48,0.7);border:1px solid var(--border);border-radius:4px;padding:8px 10px">
+          <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">"The Deep Learning Compiler: A Comprehensive Survey" (arXiv 2002.03794)</div>
+          <div style="font-size:10px;color:var(--text-dim);line-height:1.6">Definitive academic overview covering TVM, XLA, Glow, TC, nGraph. Taxonomy of frontend IR vs backend IR, graph-level and operator-level optimizations. The best single paper to read before diving into any framework.</div>
+        </div>
       </div>
     </div>
 
